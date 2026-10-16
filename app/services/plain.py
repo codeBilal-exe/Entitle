@@ -23,6 +23,9 @@ DOCS = {
     "id_document": "Identity document",
     "disability_certificate": "Disability certificate",
     "education_certificate": "Education certificate",
+    "cnic": "CNIC",
+    "income_certificate": "Income certificate",
+    "transcript": "Transcript",
 }
 
 DOMAINS = {
@@ -55,6 +58,8 @@ STAGES = {
     "kill_switch": "Sending switch changed",
     "deadline_reminder": "Deadline reminder",
     "signup": "Signed up",
+    "assistant_reply": "Citizen assistant replied",
+    "assistant_packet": "Packet drafted for approval",
     "rule_rejected": "Rule change rejected",
     "navigator_hold": "Alert held",
     "source_updated": "Source updated",

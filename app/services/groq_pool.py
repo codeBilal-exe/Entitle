@@ -137,10 +137,11 @@ class GroqKeyPool:
                 continue
 
             logger.warning(
-                "Groq key %s of %s returned %s",
+                "Groq key %s of %s returned %s: %s",
                 idx + 1,
                 len(self._keys),
                 response.status_code,
+                " ".join(body.split())[:180],
             )
             return None
 

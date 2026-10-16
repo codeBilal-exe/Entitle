@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     vault_key: str = ""
     groq_api_key: str = ""
     groq_api_keys: str = ""
-    llm_model: str = "llama-3.3-70b-versatile"
+    llm_model: str = "openai/gpt-oss-120b"
 
     mail_host: str = ""
     mail_port: int = 587

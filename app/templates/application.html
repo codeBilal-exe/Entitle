@@ -5,6 +5,9 @@
   {{ page_intro("Approve this packet", "You approve these exact details. Nothing is sent until you do. If they change later, the approval is cancelled.") }}
   {{ human_stops("packet") }}
 
+  {% if request.query_params.get('drafted') %}
+    {{ flash_ok("This packet was drafted from your sentence. It is not sent until you approve it.") }}
+  {% endif %}
   {% if request.query_params.get('sent') %}
     {{ flash_ok("The packet is marked sent. You can keep working from programmes or alerts.") }}
   {% endif %}

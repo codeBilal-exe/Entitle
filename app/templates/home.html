@@ -30,6 +30,68 @@
       </div>
     </section>
 
+    <section class="assist" aria-labelledby="assist-heading">
+      <h2 id="assist-heading">Tell RightPath your situation</h2>
+      <p class="assist-note">Groq reads the sentence. The rule engine decides what matches. A packet is sent only after you approve it.</p>
+      <form method="post" action="/assistant" class="assist-form">
+        <label class="visually-hidden" for="situation">Your situation</label>
+        <textarea id="situation" name="sentence" rows="3" maxlength="600" required placeholder="I am 22, at university in Punjab, and my household income is low."></textarea>
+        <button class="btn" type="submit">See what matches</button>
+      </form>
+      {% if assistant %}
+        {% if assistant.error %}
+          <p class="assist-error" role="alert">{{ assistant.error }}</p>
+        {% endif %}
+        {% if assistant.summary %}
+          <p class="assist-summary">{{ assistant.summary }}</p>
+          <p class="assist-credit">
+            {% if assistant.used_model %}
+              Groq wrote this summary from the match. The rule engine decided it.
+            {% else %}
+              Groq did not answer, so this summary comes from the rules. The rule engine decided the matches.
+            {% endif %}
+          </p>
+        {% endif %}
+        {% if assistant.saved %}
+          <p class="assist-saved">Saved to your profile: {{ assistant.saved | join(", ") }}.</p>
+        {% endif %}
+        {% if assistant.question %}
+          <p class="assist-saved">Still needed: {{ assistant.question }}</p>
+        {% endif %}
+        {% if assistant.cards %}
+          <div class="assist-cards">
+            {% for card in assistant.cards %}
+              <article class="assist-card">
+                <h3>{{ card.title }}</h3>
+                <p class="assist-status">{{ card.status_label }}</p>
+                {% if card.quote %}
+                  <p class="assist-k">Notice</p>
+                  <p>“{{ card.quote }}”</p>
+                {% endif %}
+                {% if card.document %}
+                  <p class="assist-k">Document to bring</p>
+                  <p>{{ card.document }}</p>
+                {% endif %}
+                <p class="assist-k">Deadline</p>
+                <p>{{ card.deadline if card.deadline else "None on the approved notice" }}</p>
+                <p class="assist-k">Next</p>
+                <p>{{ card.next_step }}</p>
+                {% if card.official_url %}
+                  <p class="assist-link"><a href="{{ card.official_url }}" target="_blank" rel="noopener noreferrer">Official page</a></p>
+                {% endif %}
+                {% if card.can_prepare %}
+                  <form method="post" action="/assistant">
+                    <input type="hidden" name="program_id" value="{{ card.program_id }}">
+                    <button class="btn btn-secondary" type="submit">Prepare this packet</button>
+                  </form>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endif %}
+    </section>
+
     <section class="prog-section" aria-labelledby="programmes-heading">
       <h2 id="programmes-heading">Programmes</h2>
 

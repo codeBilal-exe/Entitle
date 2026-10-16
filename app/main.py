@@ -29,6 +29,7 @@ from app.models import (
 from app.security import hash_password, mount_session, verify_password
 from app.seed import ensure_catalogue, ensure_demo_accounts, ensure_demo_approved_rules, seed_if_empty
 from app.services import pulse
+from app.services.assistant import create_packet, reply_for
 from app.services.explainer import short_reason
 from app.services import plain
 from app.services.manual_pack import build_manual_pack
@@ -235,6 +236,7 @@ def home(request: Request, db: Session = Depends(get_db)):
             program_rows=rows,
             has_profile=profile is not None,
             eligible_count=eligible_count,
+            assistant=request.session.get("assistant"),
         )
 
     sources = (
@@ -260,6 +262,96 @@ def home(request: Request, db: Session = Depends(get_db)):
         .count(),
         send_enabled=is_send_enabled(),
     )
+
+
+@app.post("/assistant")
+def assistant_ask(
+    request: Request,
+    sentence: str = Form(""),
+    program_id: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    user = current_user(request, db)
+    if not user:
+        return redirect_login("/")
+    if user.role != "citizen":
+        return deny(request, db)
+
+    if program_id.strip():
+        program = db.get(Program, program_id.strip())
+        if not program or program.status != "active":
+            return HTMLResponse("Programme not found", status_code=404)
+        attrs = profile_attrs(own_profile(db, user))
+        rules = load_rules(db, program)
+        source = (
+            db.query(Source).filter(Source.program_id == program.id).order_by(Source.id).first()
+        )
+        evaluation = rule_engine.evaluate(rules, attrs)
+        if checked_match(rules, source, evaluation) != "eligible":
+            request.session["assistant"] = {
+                "error": "That programme is not an approved match, so no packet was drafted.",
+                "summary": "",
+                "cards": [],
+                "saved": [],
+                "question": "",
+                "used_model": False,
+            }
+            return RedirectResponse("/", status_code=303)
+        application = create_packet(db, user, program, rules, attrs)
+        log_event(
+            db,
+            stage="assistant_packet",
+            detail=f"Drafted packet {application.id} for approval",
+            case_id=application.id,
+            human_decision=False,
+        )
+        db.commit()
+        return RedirectResponse(f"/applications/{application.id}?drafted=1", status_code=303)
+
+    result = reply_for(db, user, sentence)
+    if result.get("program_id"):
+        program = db.get(Program, result["program_id"])
+        rules = load_rules(db, program) if program else {}
+        if program is not None:
+            application = create_packet(db, user, program, rules, result.get("attrs") or {})
+            log_event(
+                db,
+                stage="assistant_packet",
+                detail=f"Drafted packet {application.id} from a sentence",
+                case_id=application.id,
+                human_decision=False,
+            )
+            db.commit()
+            request.session["assistant"] = {
+                "error": None,
+                "summary": result.get("summary") or "",
+                "cards": result.get("cards") or [],
+                "saved": result.get("saved") or [],
+                "question": result.get("question") or "",
+                "used_model": bool(result.get("used_model")),
+            }
+            return RedirectResponse(
+                f"/applications/{application.id}?drafted=1", status_code=303
+            )
+
+    request.session["assistant"] = {
+        "error": result.get("error"),
+        "summary": result.get("summary") or "",
+        "cards": result.get("cards") or [],
+        "saved": result.get("saved") or [],
+        "question": result.get("question") or "",
+        "used_model": bool(result.get("used_model")),
+    }
+    if result.get("saved") or result.get("summary"):
+        log_event(
+            db,
+            stage="assistant_reply",
+            detail="Replied from approved rules",
+            case_id=str(user.id),
+            human_decision=False,
+        )
+        db.commit()
+    return RedirectResponse("/", status_code=303)
 
 
 @app.get("/programmes/{program_id}", response_class=HTMLResponse)
