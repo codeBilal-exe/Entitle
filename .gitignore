@@ -29,6 +29,8 @@ data/*.db
 data/*.sqlite
 data/*.sqlite3
 data/test_*.db
+data/runtime.json
+data/manual_packs/
 !data/.gitkeep
 
 # OS / editors

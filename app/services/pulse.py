@@ -257,6 +257,14 @@ def approve_and_fan_out(
         routed.append({"user_id": applicant.id, **detail})
 
     db.commit()
+
+    try:
+        from app.services.n8n_client import notify_approve
+
+        notify_approve(job.id, reviewed_by)
+    except Exception:
+        pass
+
     return {
         "ok": True,
         "job_id": job.id,

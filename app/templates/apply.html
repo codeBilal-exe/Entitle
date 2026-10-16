@@ -17,7 +17,19 @@
           <option value="{{ c }}" {% if profile.education_level == c %}selected{% endif %}>{{ c }}</option>
         {% endfor %}
       </select>
-      <p class="hint">Required documents (SAMPLE ONLY in demo): {{ (rules.required_docs or []) | join(', ') }}</p>
+      <div class="tip">
+        <strong>Document checklist (SAMPLE ONLY):</strong>
+        {% if rules.required_docs %}
+          <ul>
+            {% for doc in rules.required_docs %}
+              <li>{{ doc.replace('_', ' ') }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          No documents listed for this programme.
+        {% endif %}
+        RightPath never uploads real identity files in this demo.
+      </div>
       <div class="actions">
         <button class="btn" type="submit">Continue to consent</button>
       </div>

@@ -14,6 +14,7 @@
           {% if row.program.is_demo_sample %}{{ demo_mark() }}{% endif %}
         </div>
       </div>
+      <p>{{ row.explanation }}</p>
       <ul>
         {% for reason in ev.reasons %}
           <li>{{ reason }}</li>

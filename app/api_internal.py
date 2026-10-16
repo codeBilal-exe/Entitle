@@ -150,3 +150,17 @@ def deadline_reminders(db: Session = Depends(get_db), _: None = Depends(require_
     from app.services.deadlines import run_deadline_reminders
 
     return run_deadline_reminders(db)
+
+
+@router.get("/gold-set")
+def gold_set(_: None = Depends(require_secret)):
+    from app.services.goldset import run_gold_set
+
+    return run_gold_set()
+
+
+@router.post("/reset-demo")
+def api_reset_demo(db: Session = Depends(get_db), _: None = Depends(require_secret)):
+    from app.services.demo_reset import reset_demo
+
+    return reset_demo(db)

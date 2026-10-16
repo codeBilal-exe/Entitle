@@ -10,6 +10,12 @@
   {% if request.query_params.get('error') %}
     {{ flash_err("Send blocked: " ~ request.query_params.get('error')) }}
   {% endif %}
+  {% if request.query_params.get('pack') or pack_name %}
+    {{ flash_ok("A SAMPLE ONLY manual pack ZIP is ready to download.") }}
+  {% endif %}
+  {% if not send_enabled %}
+    <div class="flash flash-err" role="status">Kill switch is on. Sends are blocked; a manual pack will be created instead.</div>
+  {% endif %}
 
   <section class="sheet">
     <div class="sheet-head">
@@ -19,6 +25,7 @@
       {% endif %}
     </div>
     <pre>{{ payload | tojson(indent=2) }}</pre>
+    <p class="hint">Document checklist (SAMPLE ONLY): {{ (payload.attachments or []) | join(', ') }}</p>
   </section>
 
   <div class="actions">
@@ -32,6 +39,9 @@
           <button class="btn" type="submit">Send now</button>
         </form>
       {% endif %}
+    {% endif %}
+    {% if pack_name %}
+      <a class="btn btn-secondary" href="/applications/{{ application.id }}/pack">Download manual pack</a>
     {% endif %}
     <a class="btn btn-secondary" href="/timeline">Open timeline</a>
   </div>

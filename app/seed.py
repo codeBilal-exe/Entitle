@@ -191,6 +191,7 @@ PROGRAMS = [
     },
 ]
 
+# Exported for demo reset.
 INCLUSIVE_HIRING_NOTICE = (
     "Inclusive Hiring Programme — Official Notice (DEMO SAMPLE)\n\n"
     "This programme supports persons with disabilities aged between 18 and 45 years "

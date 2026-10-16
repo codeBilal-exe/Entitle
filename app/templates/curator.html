@@ -6,6 +6,17 @@
   {% if request.query_params.get('checked') %}
     {{ flash_ok("Source check finished. No new pending draft from a hash change.") }}
   {% endif %}
+  {% if request.query_params.get('reset') %}
+    {{ flash_ok("Demo reset complete. Notice and live rules restored to baseline.") }}
+  {% endif %}
+
+  <section class="sheet sheet-plain">
+    <div class="sheet-head">
+      <h2 class="sheet-title">Gold-set accuracy</h2>
+      <span class="mark mark-ok">{{ goldset.correct }}/{{ goldset.total }} · {{ goldset.percent }}%</span>
+    </div>
+    <p>{{ goldset.summary }} ({{ goldset.method }} drafting, before curator edits).</p>
+  </section>
 
   <div class="split">
     <section class="sheet">
@@ -38,8 +49,25 @@
         <form method="post" action="/curator/replay">
           <button class="btn btn-secondary" type="submit" style="width:100%">REPLAY tighten</button>
         </form>
+        <form method="post" action="/curator/reset-demo" onsubmit="return confirm('Reset demo runtime data?');">
+          <button class="btn btn-secondary" type="submit" style="width:100%">Reset demo</button>
+        </form>
+        {% if send_enabled %}
+          <form method="post" action="/curator/kill-switch">
+            <input type="hidden" name="enabled" value="0">
+            <button class="btn btn-seal" type="submit" style="width:100%">Turn kill switch ON</button>
+          </form>
+        {% else %}
+          <form method="post" action="/curator/kill-switch">
+            <input type="hidden" name="enabled" value="1">
+            <button class="btn" type="submit" style="width:100%">Turn kill switch OFF (sending blocked)</button>
+          </form>
+        {% endif %}
       </div>
-      <p class="meta" style="margin-top:1rem"><a href="/demo/notices/inclusive-hiring">Open public DEMO notice</a></p>
+      <p class="meta" style="margin-top:1rem">
+        Sending is {% if send_enabled %}<strong>enabled</strong>{% else %}<strong>blocked</strong>{% endif %}.
+        <a href="/demo/notices/inclusive-hiring">Open public DEMO notice</a>
+      </p>
     </section>
   </div>
 

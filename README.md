@@ -69,6 +69,13 @@ On Alternate Clouds: set Variables first, then **Rebuild**, then **Deploy**. `PO
 
 Core also runs an in-process source watcher every `WATCHER_INTERVAL_SECONDS` (default 120). n8n workflows in `n8n/` call the same `/api/internal/*` hooks.
 
+### Curator controls
+
+- **Gold-set score** on the curator desk (honest `N of M` before curator edits)
+- **Reset demo** restores the DEMO notice and live rules to baseline
+- **Kill switch** blocks outbound sends and builds a SAMPLE ONLY manual pack ZIP
+- Optional `N8N_BASE_URL` — Core notifies n8n webhooks after approve/send
+
 ### Internal API (local)
 
 Header: `x-rightpath-secret: dev-shared-secret` (or your `N8N_SHARED_SECRET`)

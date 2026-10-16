@@ -29,12 +29,17 @@ from app.models import (
 from app.security import mount_session, verify_password
 from app.seed import seed_if_empty
 from app.services import pulse
+from app.services.demo_reset import reset_demo
+from app.services.explainer import explain_result
+from app.services.goldset import run_gold_set
+from app.services.manual_pack import build_manual_pack
 from app.services.questions import QuestionEngine
+from app.services.runtime import is_send_enabled, set_send_enabled
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.timeline import log_event
 
 settings = get_settings()
-app = FastAPI(title="RightPath", version="0.2.0")
+app = FastAPI(title="RightPath", version="0.3.0")
 mount_session(app, settings.secret_key)
 app.include_router(internal_router)
 
@@ -45,6 +50,10 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 rule_engine = RuleEngine()
 question_engine = QuestionEngine(rule_engine)
 approval_gate = ApprovalGate()
+
+
+def render(request: Request, name: str, db: Session, **extra: Any):
+    return templates.TemplateResponse(request, name, base_ctx(request, db, **extra))
 
 
 @app.on_event("startup")
@@ -106,10 +115,7 @@ def base_ctx(request: Request, db: Session, **extra: Any) -> dict[str, Any]:
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, db: Session = Depends(get_db)):
     programs = db.query(Program).filter(Program.status == "active").all()
-    return templates.TemplateResponse(
-        "home.html",
-        base_ctx(request, db, programs=programs),
-    )
+    return render(request, "home.html", db, programs=programs)
 
 
 @app.get("/health")
@@ -120,10 +126,7 @@ def health():
 @app.get("/login", response_class=HTMLResponse)
 def login_form(request: Request, db: Session = Depends(get_db)):
     users = db.query(User).order_by(User.role, User.email).all()
-    return templates.TemplateResponse(
-        "login.html",
-        base_ctx(request, db, users=users, error=None),
-    )
+    return render(request, "login.html", db, users=users, error=None)
 
 
 @app.post("/login")
@@ -137,6 +140,7 @@ def login(
     if not user or not verify_password(password, user.password_hash):
         users = db.query(User).order_by(User.role, User.email).all()
         return templates.TemplateResponse(
+            request,
             "login.html",
             base_ctx(request, db, users=users, error="Invalid email or password."),
             status_code=401,
@@ -160,10 +164,7 @@ def wizard(request: Request, db: Session = Depends(get_db)):
     profile = db.query(Profile).filter(Profile.user_id == user.id).first()
     attrs = profile_attrs(profile)
     question = question_engine.next_question(all_live_rules(db), attrs)
-    return templates.TemplateResponse(
-        "wizard.html",
-        base_ctx(request, db, profile=attrs, question=question),
-    )
+    return render(request, "wizard.html", db, profile=attrs, question=question)
 
 
 @app.post("/wizard")
@@ -214,19 +215,15 @@ def results(request: Request, db: Session = Depends(get_db)):
         evaluation = rule_engine.evaluate(rules, attrs)
         rows.append({"program": program, "rules": rules, "evaluation": evaluation})
     rows.sort(key=lambda r: {"eligible": 0, "likely": 1, "not_eligible": 2}[r["evaluation"].status.value])
-    return templates.TemplateResponse(
-        "results.html",
-        base_ctx(request, db, rows=rows, profile=attrs, Status=Status),
-    )
+    for row in rows:
+        row["explanation"] = explain_result(row["program"].title, row["evaluation"])
+    return render(request, "results.html", db, rows=rows, profile=attrs, Status=Status)
 
 
 @app.get("/timeline", response_class=HTMLResponse)
 def timeline(request: Request, db: Session = Depends(get_db)):
     events = db.query(Event).order_by(Event.at.desc()).limit(100).all()
-    return templates.TemplateResponse(
-        "timeline.html",
-        base_ctx(request, db, events=events),
-    )
+    return render(request, "timeline.html", db, events=events)
 
 
 @app.get("/privacy", response_class=HTMLResponse)
@@ -237,10 +234,7 @@ def privacy(request: Request, db: Session = Depends(get_db)):
     if user:
         profile = db.query(Profile).filter(Profile.user_id == user.id).first()
         apps = db.query(Application).filter(Application.user_id == user.id).all()
-    return templates.TemplateResponse(
-        "privacy.html",
-        base_ctx(request, db, profile=profile, applications=apps),
-    )
+    return render(request, "privacy.html", db, profile=profile, applications=apps)
 
 
 @app.post("/privacy/delete")
@@ -271,10 +265,7 @@ def demo_notice(notice_id: str, request: Request, db: Session = Depends(get_db))
     notice = db.get(DemoNotice, notice_id)
     if not notice:
         return HTMLResponse("Notice not found", status_code=404)
-    return templates.TemplateResponse(
-        "demo_notice.html",
-        base_ctx(request, db, notice=notice),
-    )
+    return render(request, "demo_notice.html", db, notice=notice)
 
 
 @app.get("/curator", response_class=HTMLResponse)
@@ -289,9 +280,14 @@ def curator_home(request: Request, db: Session = Depends(get_db)):
         .all()
     )
     notice = db.get(DemoNotice, "inclusive-hiring")
-    return templates.TemplateResponse(
+    return render(
+        request,
         "curator.html",
-        base_ctx(request, db, jobs=jobs, notice=notice),
+        db,
+        jobs=jobs,
+        notice=notice,
+        goldset=run_gold_set(),
+        send_enabled=is_send_enabled(),
     )
 
 
@@ -359,6 +355,35 @@ def curator_replay(request: Request, db: Session = Depends(get_db)):
     return RedirectResponse("/curator", status_code=303)
 
 
+@app.post("/curator/reset-demo")
+def curator_reset_demo(request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user or user.role not in {"curator", "admin"}:
+        return RedirectResponse("/login", status_code=303)
+    reset_demo(db)
+    return RedirectResponse("/curator?reset=1", status_code=303)
+
+
+@app.post("/curator/kill-switch")
+def curator_kill_switch(
+    request: Request,
+    enabled: str = Form("1"),
+    db: Session = Depends(get_db),
+):
+    user = current_user(request, db)
+    if not user or user.role not in {"curator", "admin"}:
+        return RedirectResponse("/login", status_code=303)
+    set_send_enabled(enabled == "1")
+    log_event(
+        db,
+        stage="kill_switch",
+        detail=f"send_enabled={enabled == '1'} by {user.email}",
+        case_id="system",
+        human_decision=True,
+    )
+    return RedirectResponse("/curator", status_code=303)
+
+
 @app.get("/curator/jobs/{job_id}", response_class=HTMLResponse)
 def curator_job(job_id: int, request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
@@ -367,16 +392,14 @@ def curator_job(job_id: int, request: Request, db: Session = Depends(get_db)):
     job = db.get(IngestionJob, job_id)
     if not job:
         return HTMLResponse("Job not found", status_code=404)
-    return templates.TemplateResponse(
+    return render(
+        request,
         "curator_job.html",
-        base_ctx(
-            request,
-            db,
-            job=job,
-            draft=json.loads(job.draft_json),
-            quote_check=json.loads(job.quote_check_json),
-            diff=json.loads(job.diff_json),
-        ),
+        db,
+        job=job,
+        draft=json.loads(job.draft_json),
+        quote_check=json.loads(job.quote_check_json),
+        diff=json.loads(job.diff_json),
     )
 
 
@@ -407,10 +430,7 @@ def navigator_queue(request: Request, db: Session = Depends(get_db)):
     parsed = []
     for item in items:
         parsed.append({"row": item, "detail": json.loads(item.detail_json or "{}")})
-    return templates.TemplateResponse(
-        "navigator.html",
-        base_ctx(request, db, items=parsed),
-    )
+    return render(request, "navigator.html", db, items=parsed)
 
 
 @app.post("/navigator/{notification_id}/release")
@@ -447,15 +467,13 @@ def apply_form(program_id: str, request: Request, db: Session = Depends(get_db))
         return HTMLResponse("Programme not found", status_code=404)
     rules = load_rules(db, program)
     profile = db.query(Profile).filter(Profile.user_id == user.id).first()
-    return templates.TemplateResponse(
+    return render(
+        request,
         "apply.html",
-        base_ctx(
-            request,
-            db,
-            program=program,
-            rules=rules,
-            profile=profile_attrs(profile),
-        ),
+        db,
+        program=program,
+        rules=rules,
+        profile=profile_attrs(profile),
     )
 
 
@@ -517,9 +535,18 @@ def application_detail(
     if not application or application.user_id != user.id:
         return HTMLResponse("Not found", status_code=404)
     payload = json.loads(application.payload_json)
-    return templates.TemplateResponse(
+    pack_name = None
+    pack_path = Path("data/manual_packs") / f"{application.id}.zip"
+    if pack_path.exists():
+        pack_name = pack_path.name
+    return render(
+        request,
         "application.html",
-        base_ctx(request, db, application=application, payload=payload),
+        db,
+        application=application,
+        payload=payload,
+        pack_name=pack_name,
+        send_enabled=is_send_enabled(),
     )
 
 
@@ -577,7 +604,22 @@ def application_send(
             f"/applications/{application_id}?error={decision.reason}", status_code=303
         )
 
-    # Local/dev: mark sent and log. Real SMTP wired when MAIL_* is configured.
+    if not is_send_enabled():
+        pack = build_manual_pack(application.id, payload)
+        application.state = ApplicationState.FAILED.value
+        log_event(
+            db,
+            stage="send_blocked",
+            detail=f"Kill switch on — manual pack {pack.name}",
+            case_id=application_id,
+            status="blocked",
+            human_decision=True,
+        )
+        db.commit()
+        return RedirectResponse(
+            f"/applications/{application_id}?error=kill_switch&pack=1", status_code=303
+        )
+
     recipient = settings.demo_recipient or payload.get("to")
     sent_via = "log_only"
     if settings.mail_host and settings.mail_user:
@@ -586,18 +628,20 @@ def application_send(
 
             send_application_email(payload, recipient)
             sent_via = "smtp"
-        except Exception as exc:  # noqa: BLE001 — surface failure on timeline
+        except Exception as exc:  # noqa: BLE001
+            pack = build_manual_pack(application.id, payload)
             application.state = ApplicationState.FAILED.value
             log_event(
                 db,
                 stage="send_failed",
-                detail=str(exc),
+                detail=f"{exc} — manual pack {pack.name}",
                 case_id=application_id,
                 status="failed",
             )
             db.commit()
             return RedirectResponse(
-                f"/applications/{application_id}?error=send_failed", status_code=303
+                f"/applications/{application_id}?error=send_failed&pack=1",
+                status_code=303,
             )
 
     application.state = ApplicationState.SENT.value
@@ -608,7 +652,31 @@ def application_send(
         case_id=application_id,
     )
     db.commit()
+    try:
+        from app.services.n8n_client import notify_send
+
+        notify_send(application.id)
+    except Exception:
+        pass
     return RedirectResponse(f"/applications/{application_id}?sent=1", status_code=303)
+
+
+@app.get("/applications/{application_id}/pack")
+def download_manual_pack(
+    application_id: str, request: Request, db: Session = Depends(get_db)
+):
+    from fastapi.responses import FileResponse
+
+    user = current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    application = db.get(Application, application_id)
+    if not application or application.user_id != user.id:
+        return HTMLResponse("Not found", status_code=404)
+    path = Path("data/manual_packs") / f"{application_id}.zip"
+    if not path.exists():
+        return HTMLResponse("No manual pack for this application", status_code=404)
+    return FileResponse(path, filename=path.name, media_type="application/zip")
 
 
 @app.get("/notifications", response_class=HTMLResponse)
@@ -623,7 +691,4 @@ def my_notifications(request: Request, db: Session = Depends(get_db)):
         .all()
     )
     parsed = [{"row": i, "detail": json.loads(i.detail_json or "{}")} for i in items]
-    return templates.TemplateResponse(
-        "notifications.html",
-        base_ctx(request, db, items=parsed),
-    )
+    return render(request, "notifications.html", db, items=parsed)
