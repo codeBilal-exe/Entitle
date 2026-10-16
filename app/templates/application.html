@@ -1,34 +1,38 @@
 {% extends "base.html" %}
+{% from "macros.html" import page_intro, flash_ok, flash_err %}
 {% block title %}Consent — {{ application.id }}{% endblock %}
 {% block content %}
-  <h1>Approve exact packet</h1>
-  <p class="lede">Nothing is sent until you approve this exact payload. Changing it later cancels approval.</p>
+  {{ page_intro("Approve exact packet", "Nothing is sent until you approve this exact payload. Changing it later cancels approval.") }}
 
   {% if request.query_params.get('sent') %}
-    <div class="flash-ok">Packet marked sent. Check the timeline for delivery details.</div>
+    {{ flash_ok("Packet marked sent. Check the timeline for delivery details.") }}
   {% endif %}
   {% if request.query_params.get('error') %}
-    <div class="flash-err">Send blocked: {{ request.query_params.get('error') }}</div>
+    {{ flash_err("Send blocked: " ~ request.query_params.get('error')) }}
   {% endif %}
 
-  <div class="panel">
-    <p class="panel-title">State: <code>{{ application.state }}</code></p>
-    {% if application.approval_hash %}
-      <p class="meta">Approval hash: {{ application.approval_hash }}</p>
+  <section class="sheet">
+    <div class="sheet-head">
+      <h2 class="sheet-title">State: {{ application.state }}</h2>
+      {% if application.approval_hash %}
+        <span class="sheet-meta">Hash {{ application.approval_hash[:16] }}…</span>
+      {% endif %}
+    </div>
+    <pre>{{ payload | tojson(indent=2) }}</pre>
+  </section>
+
+  <div class="actions">
+    {% if application.state != "sent" %}
+      {% if application.state != "approved" %}
+        <form method="post" action="/applications/{{ application.id }}/approve">
+          <button class="btn btn-seal" type="submit">I approve this exact packet</button>
+        </form>
+      {% else %}
+        <form method="post" action="/applications/{{ application.id }}/send">
+          <button class="btn" type="submit">Send now</button>
+        </form>
+      {% endif %}
     {% endif %}
-    <pre style="white-space:pre-wrap;font-size:0.85rem">{{ payload | tojson(indent=2) }}</pre>
+    <a class="btn btn-secondary" href="/timeline">Open timeline</a>
   </div>
-
-  {% if application.state != "sent" %}
-    {% if application.state != "approved" %}
-      <form method="post" action="/applications/{{ application.id }}/approve" style="display:inline">
-        <button class="btn" type="submit">I approve this exact packet</button>
-      </form>
-    {% else %}
-      <form method="post" action="/applications/{{ application.id }}/send" style="display:inline">
-        <button class="btn" type="submit">Send now</button>
-      </form>
-    {% endif %}
-  {% endif %}
-  <a class="btn btn-secondary" href="/timeline">Timeline</a>
 {% endblock %}

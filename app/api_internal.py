@@ -143,3 +143,10 @@ def pending_jobs(db: Session = Depends(get_db), _: None = Depends(require_secret
             for j in jobs
         ],
     }
+
+
+@router.post("/deadline-reminders")
+def deadline_reminders(db: Session = Depends(get_db), _: None = Depends(require_secret)):
+    from app.services.deadlines import run_deadline_reminders
+
+    return run_deadline_reminders(db)

@@ -1,56 +1,72 @@
 {% extends "base.html" %}
-{% block title %}Check entitlements — RightPath{% endblock %}
+{% from "macros.html" import page_intro %}
+{% block title %}Check eligibility — RightPath{% endblock %}
 {% block content %}
-  <h1>Check what may apply</h1>
-  <p class="lede">Answer only what is needed. Sensitive questions are optional.</p>
+  {{ page_intro("Check what may apply", "Answer only what is needed. Sensitive questions are optional.") }}
 
-  <div class="panel">
-    <p class="panel-title">Your answers so far</p>
+  <section class="sheet sheet-plain">
+    <div class="sheet-head">
+      <h2 class="sheet-title">Answers so far</h2>
+    </div>
     {% if profile %}
-      <ul>
-        {% for k, v in profile.items() %}
-          <li><strong>{{ k }}</strong>: {% if v is none %}prefer not to say{% else %}{{ v }}{% endif %}</li>
-        {% endfor %}
-      </ul>
+      <table class="ledger">
+        <tbody>
+          {% for k, v in profile.items() %}
+            <tr>
+              <td>{{ k.replace('_', ' ') }}</td>
+              <td>{% if v is none %}Prefer not to say{% else %}{{ v }}{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     {% else %}
-      <p class="meta">No answers yet.</p>
+      <p class="empty">No answers yet.</p>
     {% endif %}
-  </div>
+  </section>
 
   {% if question %}
-    <div class="panel">
-      <p class="panel-title">{{ question.label }}</p>
+    <section class="sheet">
+      <div class="sheet-head">
+        <h2 class="sheet-title">{{ question.label }}</h2>
+      </div>
       {% if question.sensitive %}
-        <p class="meta">Sensitive — answering may unlock about {{ question.unlocks }} programme(s). You may prefer not to say.</p>
+        <p class="hint">Sensitive. Answering may unlock about {{ question.unlocks }} programme(s). You can prefer not to say.</p>
       {% endif %}
       <form method="post" action="/wizard">
         <input type="hidden" name="attr" value="{{ question.attr }}">
         {% if question.type == "bool" %}
-          <label><input type="radio" name="value" value="true"> Yes</label><br>
-          <label><input type="radio" name="value" value="false"> No</label><br>
+          <div class="choice-row">
+            <label><input type="radio" name="value" value="true"> Yes</label>
+            <label><input type="radio" name="value" value="false"> No</label>
+          </div>
         {% elif question.type == "choice" %}
-          <select name="value">
+          <label class="label" for="value">Choose one</label>
+          <select id="value" name="value">
             <option value="">Select…</option>
             {% for c in question.choices %}
               <option value="{{ c }}">{{ c }}</option>
             {% endfor %}
           </select>
         {% elif question.type == "number" %}
-          <input type="number" name="value" min="0" max="120">
+          <label class="label" for="value">Number</label>
+          <input id="value" type="number" name="value" min="0" max="120">
         {% else %}
-          <input type="text" name="value">
+          <label class="label" for="value">Answer</label>
+          <input id="value" type="text" name="value">
         {% endif %}
-        <p>
+        <div class="actions">
           <button class="btn" type="submit">Save answer</button>
           {% if question.sensitive %}
             <button class="btn btn-secondary" type="submit" name="prefer_not" value="1">Prefer not to say</button>
           {% endif %}
-        </p>
+        </div>
       </form>
-    </div>
+    </section>
   {% else %}
-    <div class="flash-ok">Enough answers collected for this demo set.</div>
+    <div class="flash flash-ok" role="status">Enough answers collected for this demo set.</div>
   {% endif %}
 
-  <p><a class="btn" href="/results">See results</a></p>
+  <div class="actions">
+    <a class="btn" href="/results">See results</a>
+  </div>
 {% endblock %}

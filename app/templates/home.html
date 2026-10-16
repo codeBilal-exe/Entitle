@@ -1,31 +1,54 @@
 {% extends "base.html" %}
+{% from "macros.html" import demo_mark %}
 {% block title %}RightPath — Living entitlements{% endblock %}
 {% block content %}
-  <h1>Rules change. Your rights shouldn’t slip away.</h1>
-  <p class="lede">
-    RightPath watches official notices, drafts rule updates with source quotes,
-    and tells people when something changes for them — with a human approving
-    every consequential step.
-  </p>
-
-  <div class="panel">
-    <p class="panel-title">Start a demo</p>
-    <p class="meta">Use the seeded accounts. Password for all demo users: <code>demo1234</code></p>
-    <p>
-      <a class="btn" href="/login">Sign in</a>
-      <a class="btn btn-secondary" href="/demo/notices/inclusive-hiring">Open DEMO notice</a>
-      <a class="btn btn-secondary" href="/timeline">Live timeline</a>
-    </p>
-  </div>
+  <section class="hero-folio">
+    <div class="hero-copy">
+      <p class="hero-kicker">When a rule changes, the right people should know</p>
+      <h1>Keep entitlements alive.</h1>
+      <p class="lede">
+        RightPath watches official notices, drafts updates with source quotes,
+        and tells people when something changes for them. A human approves every
+        consequential step.
+      </p>
+      <div class="actions">
+        <a class="btn btn-primary-lg" href="/login">Sign in to demo</a>
+        <a class="btn btn-secondary" href="/demo/notices/inclusive-hiring">Read DEMO notice</a>
+      </div>
+    </div>
+    <aside class="hero-notice" aria-label="Sample notice">
+      <span class="hero-notice-label">Sample notice</span>
+      <h2>Inclusive Hiring Programme</h2>
+      <p>
+        “This programme supports persons with disabilities aged between 18 and 45 years
+        who have completed secondary education or higher.”
+      </p>
+      <p class="meta" style="margin-top:0.85rem">Demo sample · controllable source for the live Pulse</p>
+    </aside>
+  </section>
 
   <h2>Programmes in this build</h2>
-  {% for program in programs %}
-    <div class="panel">
-      <p class="panel-title">
-        {{ program.title }}
-        {% if program.is_demo_sample %}<span class="badge badge-demo">DEMO sample</span>{% endif %}
-      </p>
-      <p class="meta">{{ program.provider }} · {{ program.country }} · {{ program.domain }}</p>
-    </div>
-  {% endfor %}
+  <table class="ledger">
+    <thead>
+      <tr>
+        <th>Programme</th>
+        <th>Provider</th>
+        <th>Country</th>
+        <th>Domain</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for program in programs %}
+        <tr>
+          <td>
+            <div class="title">{{ program.title }}</div>
+            {% if program.is_demo_sample %}{{ demo_mark() }}{% endif %}
+          </td>
+          <td class="meta">{{ program.provider }}</td>
+          <td class="meta">{{ program.country }}</td>
+          <td class="meta">{{ program.domain }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 {% endblock %}

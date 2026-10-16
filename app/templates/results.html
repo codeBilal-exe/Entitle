@@ -1,23 +1,19 @@
 {% extends "base.html" %}
+{% from "macros.html" import page_intro, status_badge, demo_mark %}
 {% block title %}Results — RightPath{% endblock %}
 {% block content %}
-  <h1>Results</h1>
-  <p class="lede">Eligibility is decided by published rules in code. Each reason shows a source quote.</p>
+  {{ page_intro("Results", "Eligibility is decided by published rules in code. Each reason shows a source quote.") }}
 
   {% for row in rows %}
     {% set ev = row.evaluation %}
-    <div class="panel">
-      <p class="panel-title">
-        {{ row.program.title }}
-        {% if ev.status.value == "eligible" %}
-          <span class="badge badge-eligible">Eligible</span>
-        {% elif ev.status.value == "likely" %}
-          <span class="badge badge-likely">Likely</span>
-        {% else %}
-          <span class="badge badge-not">Not eligible</span>
-        {% endif %}
-        {% if row.program.is_demo_sample %}<span class="badge badge-demo">DEMO sample</span>{% endif %}
-      </p>
+    <article class="sheet {% if ev.status.value == 'not_eligible' %}sheet-seal{% endif %}">
+      <div class="sheet-head">
+        <h2 class="sheet-title">{{ row.program.title }}</h2>
+        <div>
+          {{ status_badge(ev.status.value) }}
+          {% if row.program.is_demo_sample %}{{ demo_mark() }}{% endif %}
+        </div>
+      </div>
       <ul>
         {% for reason in ev.reasons %}
           <li>{{ reason }}</li>
@@ -29,8 +25,10 @@
         {% endif %}
       {% endfor %}
       {% if ev.status.value in ["eligible", "likely"] %}
-        <p><a class="btn btn-secondary" href="/apply/{{ row.program.id }}">Prepare application</a></p>
+        <div class="actions">
+          <a class="btn btn-secondary" href="/apply/{{ row.program.id }}">Prepare application</a>
+        </div>
       {% endif %}
-    </div>
+    </article>
   {% endfor %}
 {% endblock %}

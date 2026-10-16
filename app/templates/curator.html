@@ -1,45 +1,60 @@
 {% extends "base.html" %}
+{% from "macros.html" import page_intro, flash_ok %}
 {% block title %}Curator — RightPath{% endblock %}
 {% block content %}
-  <h1>Curator desk</h1>
-  <p class="lede">AI may draft. Quote checks are code. Nothing goes live without your approval. The Core watcher also polls sources on a schedule.</p>
+  {{ page_intro("Curator desk", "AI may draft. Quote checks are code. Nothing goes live without your approval.") }}
   {% if request.query_params.get('checked') %}
-    <div class="flash-ok">Source check finished. No new pending draft (hash unchanged or already processed).</div>
+    {{ flash_ok("Source check finished. No new pending draft from a hash change.") }}
   {% endif %}
 
   <div class="split">
-    <div class="panel">
-      <p class="panel-title">DEMO notice (edit to trigger a rule change)</p>
+    <section class="sheet">
+      <div class="sheet-head">
+        <h2 class="sheet-title">DEMO notice</h2>
+        <span class="sheet-meta">Edit to trigger a rule change</span>
+      </div>
       <form method="post" action="/curator/demo-notice">
-        <textarea name="body" required>{{ notice.body if notice else "" }}</textarea>
-        <p class="meta">Hero tip: live rules start at 18–45. Change the notice to “18 and 35”, save, then either <strong>Check sources now</strong> or <strong>Run ingest now</strong>. Amina (40) goes to the navigator queue.</p>
-        <button class="btn" type="submit">Save DEMO notice</button>
+        <p class="tip"><strong>Demo tip:</strong> change “18 and 45” to “18 and 35”, save, then check sources. Amina (40) moves to the navigator queue.</p>
+        <label class="label" for="body">Notice text</label>
+        <textarea id="body" name="body" required>{{ notice.body if notice else "" }}</textarea>
+        <div class="actions">
+          <button class="btn" type="submit">Save DEMO notice</button>
+        </div>
       </form>
-    </div>
-    <div class="panel">
-      <p class="panel-title">Automation controls</p>
-      <form method="post" action="/curator/check-now" style="margin-bottom:0.75rem">
-        <button class="btn" type="submit">Check sources now</button>
-      </form>
-      <form method="post" action="/curator/ingest-demo" style="margin-bottom:0.75rem">
-        <button class="btn btn-secondary" type="submit">Run ingest now</button>
-      </form>
-      <form method="post" action="/curator/replay">
-        <button class="btn btn-secondary" type="submit">REPLAY tighten</button>
-      </form>
-      <p class="meta" style="margin-top:1rem">REPLAY is labeled in the timeline for offline demos.</p>
-      <p><a href="/demo/notices/inclusive-hiring">View public DEMO notice</a></p>
-    </div>
+    </section>
+
+    <section class="sheet sheet-plain">
+      <div class="sheet-head">
+        <h2 class="sheet-title">Automation</h2>
+      </div>
+      <p class="sheet-meta">Same Pulse path used by the Core watcher and n8n hooks.</p>
+      <div class="actions" style="flex-direction:column;align-items:stretch">
+        <form method="post" action="/curator/check-now">
+          <button class="btn" type="submit" style="width:100%">Check sources now</button>
+        </form>
+        <form method="post" action="/curator/ingest-demo">
+          <button class="btn btn-secondary" type="submit" style="width:100%">Run ingest now</button>
+        </form>
+        <form method="post" action="/curator/replay">
+          <button class="btn btn-secondary" type="submit" style="width:100%">REPLAY tighten</button>
+        </form>
+      </div>
+      <p class="meta" style="margin-top:1rem"><a href="/demo/notices/inclusive-hiring">Open public DEMO notice</a></p>
+    </section>
   </div>
 
   <h2>Pending review</h2>
   {% for job in jobs %}
-    <div class="panel">
-      <p class="panel-title">Job #{{ job.id }} · {{ job.program_id }}</p>
-      <p class="meta">{{ job.created_at }} · {{ job.status }}</p>
-      <a class="btn btn-secondary" href="/curator/jobs/{{ job.id }}">Open review</a>
-    </div>
+    <section class="sheet sheet-seal">
+      <div class="sheet-head">
+        <h2 class="sheet-title">Job #{{ job.id }} · {{ job.program_id }}</h2>
+        <span class="sheet-meta">{{ job.created_at }}</span>
+      </div>
+      <div class="actions">
+        <a class="btn" href="/curator/jobs/{{ job.id }}">Open review</a>
+      </div>
+    </section>
   {% else %}
-    <p class="meta">No pending jobs.</p>
+    <p class="empty">No pending jobs.</p>
   {% endfor %}
 {% endblock %}

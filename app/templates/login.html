@@ -1,21 +1,40 @@
 {% extends "base.html" %}
+{% from "macros.html" import page_intro, flash_err %}
 {% block title %}Sign in — RightPath{% endblock %}
 {% block content %}
-  <h1>Sign in</h1>
-  <p class="lede">Demo accounts only. Password: <code>demo1234</code></p>
-  {% if error %}<div class="flash-err">{{ error }}</div>{% endif %}
+  {{ page_intro("Sign in", "Demo accounts only. Password for every seeded user: demo1234") }}
+  {% if error %}{{ flash_err(error) }}{% endif %}
 
-  <div class="panel">
-    <form method="post" action="/login">
-      <label class="label" for="email">Email</label>
-      <select id="email" name="email">
-        {% for u in users %}
-          <option value="{{ u.email }}">{{ u.display_name }} — {{ u.role }} ({{ u.email }})</option>
-        {% endfor %}
-      </select>
-      <label class="label" for="password">Password</label>
-      <input id="password" name="password" type="password" value="demo1234" required>
-      <button class="btn" type="submit">Sign in</button>
-    </form>
+  <div class="signin-grid">
+    <section class="sheet">
+      <div class="sheet-head">
+        <h2 class="sheet-title">Choose an account</h2>
+      </div>
+      <form method="post" action="/login">
+        <label class="label" for="email">Account</label>
+        <select id="email" name="email" required>
+          {% for u in users %}
+            <option value="{{ u.email }}" {% if u.role == 'curator' %}selected{% endif %}>{{ u.display_name }} — {{ u.role }}</option>
+          {% endfor %}
+        </select>
+        <label class="label" for="password">Password</label>
+        <input id="password" name="password" type="password" value="demo1234" required autocomplete="current-password">
+        <div class="actions">
+          <button class="btn" type="submit">Sign in</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="sheet sheet-plain">
+      <div class="sheet-head">
+        <h2 class="sheet-title">Who to use</h2>
+      </div>
+      <ul class="account-list">
+        <li><span>Amina Demo</span><span class="meta">applicant · Pulse story</span></li>
+        <li><span>Carlos Curator</span><span class="meta">approve rule drafts</span></li>
+        <li><span>Nadia Navigator</span><span class="meta">review bad news</span></li>
+        <li><span>Bilal / Mr Rao</span><span class="meta">other applicants</span></li>
+      </ul>
+    </section>
   </div>
 {% endblock %}

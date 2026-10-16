@@ -1,8 +1,14 @@
 {% extends "base.html" %}
+{% from "macros.html" import demo_mark %}
 {% block title %}{{ notice.title }}{% endblock %}
 {% block content %}
-  <p><span class="badge badge-demo">DEMO source</span></p>
-  <h1>{{ notice.title }}</h1>
-  <div class="panel notice-body">{{ notice.body }}</div>
-  <p class="meta">Updated {{ notice.updated_at }}. This page is controlled by RightPath for the live demo.</p>
+  <p>{{ demo_mark() }}</p>
+  <header class="page-intro">
+    <h1>{{ notice.title }}</h1>
+    <p class="lede">Controllable DEMO source used in the live Pulse. Not a government website.</p>
+  </header>
+  <article class="hero-notice">
+    <div class="notice-body">{{ notice.body }}</div>
+    <p class="meta" style="margin-top:1rem">Updated {{ notice.updated_at }}</p>
+  </article>
 {% endblock %}

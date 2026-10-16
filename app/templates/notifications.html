@@ -1,22 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Notifications — RightPath{% endblock %}
+{% from "macros.html" import page_intro %}
+{% block title %}Alerts — RightPath{% endblock %}
 {% block content %}
-  <h1>Your notifications</h1>
-  <p class="lede">Good-news updates appear here after automation. Bad news waits for a navigator.</p>
+  {{ page_intro("Your alerts", "Good-news updates appear here after automation. Bad news waits for a navigator.") }}
 
   {% for item in items %}
-    <div class="panel">
-      <p class="panel-title">
-        {{ item.row.kind }}
-        <span class="badge">{{ item.row.status }}</span>
-      </p>
+    <section class="sheet">
+      <div class="sheet-head">
+        <h2 class="sheet-title">{{ item.row.kind.replace('_', ' ') }}</h2>
+        <span class="mark">{{ item.row.status }}</span>
+      </div>
       <p>Programme <code>{{ item.row.program_id }}</code></p>
-      <p class="meta">
-        {{ item.detail.before }} → {{ item.detail.after }}
-        · {{ item.row.created_at }}
-      </p>
-    </div>
+      <p class="meta">{{ item.detail.before }} → {{ item.detail.after }} · {{ item.row.created_at }}</p>
+    </section>
   {% else %}
-    <p class="meta">No notifications yet.</p>
+    <p class="empty">No alerts yet. When a rule change helps you, it will show up here.</p>
   {% endfor %}
 {% endblock %}

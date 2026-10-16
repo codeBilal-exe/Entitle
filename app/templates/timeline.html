@@ -1,18 +1,23 @@
 {% extends "base.html" %}
+{% from "macros.html" import page_intro, human_mark %}
 {% block title %}Timeline — RightPath{% endblock %}
 {% block content %}
-  <h1>Live timeline</h1>
-  <p class="lede">Every automation step and human decision is recorded here.</p>
-  <ul class="timeline">
-    {% for event in events %}
-      <li class="{% if event.human_decision %}human{% endif %}">
-        <strong>{{ event.stage }}</strong>
-        {% if event.human_decision %}<span class="badge badge-human">Human Decision</span>{% endif %}
-        <div>{{ event.detail }}</div>
-        <div class="meta">{{ event.at }} · case {{ event.case_id or "—" }} · {{ event.status }}</div>
-      </li>
-    {% else %}
-      <li>No events yet.</li>
-    {% endfor %}
-  </ul>
+  {{ page_intro("Live timeline", "Every automation step and human decision is recorded on this docket.") }}
+
+  <section class="sheet sheet-plain">
+    <ul class="docket">
+      {% for event in events %}
+        <li class="{% if event.human_decision %}human{% endif %}">
+          <div>
+            <span class="stage">{{ event.stage }}</span>
+            {% if event.human_decision %}{{ human_mark() }}{% endif %}
+          </div>
+          <div>{{ event.detail }}</div>
+          <div class="meta">{{ event.at }} · case {{ event.case_id or "—" }} · {{ event.status }}</div>
+        </li>
+      {% else %}
+        <li><p class="empty">No events yet. Run the curator Pulse to see activity.</p></li>
+      {% endfor %}
+    </ul>
+  </section>
 {% endblock %}

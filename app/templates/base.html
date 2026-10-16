@@ -6,43 +6,65 @@
   <title>{% block title %}RightPath{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="wrap nav">
-      <a class="brand" href="/">RightPath</a>
-      <ul class="nav-links">
-        <li><a href="/wizard">Check</a></li>
-        <li><a href="/results">Results</a></li>
-        <li><a href="/notifications">Alerts</a></li>
-        <li><a href="/timeline">Timeline</a></li>
-        <li><a href="/curator">Curator</a></li>
-        <li><a href="/navigator">Navigator</a></li>
-        <li><a href="/privacy">Privacy</a></li>
-        {% if user %}
-          <li><span class="meta">{{ user.display_name }} ({{ user.role }})</span></li>
-          <li>
-            <form action="/logout" method="post" style="display:inline">
-              <button class="btn btn-secondary" type="submit">Sign out</button>
-            </form>
-          </li>
-        {% else %}
-          <li><a href="/login">Sign in</a></li>
-        {% endif %}
-      </ul>
+  {% set role = user.role if user else None %}
+  <header class="masthead">
+    <div class="wrap masthead-inner">
+      <div class="brand-block">
+        <a class="brand" href="/">RightPath</a>
+        <p class="brand-tag">Living entitlements registry</p>
+      </div>
+      <nav aria-label="Primary">
+        <ul class="nav-links">
+          {% if not user or role == "applicant" %}
+            <li><a href="/wizard">Check eligibility</a></li>
+            <li><a href="/results">Results</a></li>
+            <li><a href="/notifications">Alerts</a></li>
+          {% endif %}
+          {% if role in ["navigator", "admin", "curator"] %}
+            <li><a href="/navigator">Navigator</a></li>
+          {% endif %}
+          {% if role in ["curator", "admin"] %}
+            <li><a href="/curator">Curator</a></li>
+          {% endif %}
+          <li><a href="/timeline">Timeline</a></li>
+          <li><a href="/privacy">Privacy</a></li>
+          {% if user %}
+            <li><span class="nav-user">{{ user.display_name }} · {{ user.role }}</span></li>
+            <li>
+              <form action="/logout" method="post" style="display:inline">
+                <button class="btn btn-secondary" type="submit">Sign out</button>
+              </form>
+            </li>
+          {% else %}
+            <li><a class="btn" href="/login">Sign in</a></li>
+          {% endif %}
+        </ul>
+      </nav>
     </div>
   </header>
+  <div class="stamp-bar">
+    <div class="wrap">
+      <span>Rules are decided in code. People approve what matters.</span>
+      <span><strong>Demo build</strong> · synthetic data only</span>
+    </div>
+  </div>
+
   <main class="wrap">
     {% if replay_mode %}
-      <div class="flash-err">REPLAY mode is on — cached automation path for demos.</div>
+      <div class="flash flash-err" role="status">REPLAY mode is on — scripted automation path for offline demos.</div>
     {% endif %}
     {% block content %}{% endblock %}
   </main>
-  <footer class="site-footer wrap">
-    RightPath provides information only. It is not legal or medical advice.
-    Demo data is synthetic. Unverified programmes are labelled DEMO sample.
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <span>RightPath gives information only. Not legal or medical advice.</span>
+      <span>Unverified programmes are labelled Demo sample.</span>
+    </div>
   </footer>
 </body>
 </html>

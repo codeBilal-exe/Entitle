@@ -1,0 +1,34 @@
+{% macro status_badge(status) -%}
+  {% if status == "eligible" %}
+    <span class="mark mark-ok">Eligible</span>
+  {% elif status == "likely" %}
+    <span class="mark mark-warn">Likely</span>
+  {% elif status == "not_eligible" %}
+    <span class="mark mark-bad">Not eligible</span>
+  {% else %}
+    <span class="mark">{{ status }}</span>
+  {% endif %}
+{%- endmacro %}
+
+{% macro human_mark() -%}
+  <span class="mark mark-seal">Human decision</span>
+{%- endmacro %}
+
+{% macro demo_mark() -%}
+  <span class="mark mark-quiet">Demo sample</span>
+{%- endmacro %}
+
+{% macro page_intro(title, lede=None) -%}
+  <header class="page-intro">
+    <h1>{{ title }}</h1>
+    {% if lede %}<p class="lede">{{ lede }}</p>{% endif %}
+  </header>
+{%- endmacro %}
+
+{% macro flash_ok(message) -%}
+  <div class="flash flash-ok" role="status">{{ message }}</div>
+{%- endmacro %}
+
+{% macro flash_err(message) -%}
+  <div class="flash flash-err" role="alert">{{ message }}</div>
+{%- endmacro %}
