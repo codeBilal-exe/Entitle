@@ -90,8 +90,26 @@ def check_sources(db: Session, *, auto_ingest: bool = True) -> dict[str, Any]:
             pairs = list(pool.map(lambda item: (item[0], _download(item[1])), targets))
         downloaded = {source_id: payload for source_id, payload in pairs}
 
+    from app.seed import DEMO_APPROVED
+
     results = []
     for source in sources:
+        if source.program_id in DEMO_APPROVED:
+            # Keep walkthrough programmes on their person-approved notice text.
+            results.append(
+                {
+                    "source_id": source.id,
+                    "program_id": source.program_id,
+                    "hash": source.last_hash,
+                    "changed": False,
+                    "first_seen": not source.last_hash,
+                    "status": source.status or "ok",
+                    "skipped": True,
+                    "demo_approved": True,
+                }
+            )
+            continue
+
         if not settings.fetch_remote:
             results.append(
                 {

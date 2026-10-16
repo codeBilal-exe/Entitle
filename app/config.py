@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     secret_key: str = "dev-only-change-me"
     vault_key: str = ""
     groq_api_key: str = ""
+    groq_api_keys: str = ""
     llm_model: str = "llama-3.3-70b-versatile"
 
     mail_host: str = ""
@@ -31,6 +32,9 @@ class Settings(BaseSettings):
     staff_one_password: str = "change-me-staff-1"
     staff_two_email: str = "staff.two@rightpath.local"
     staff_two_password: str = "change-me-staff-2"
+    citizen_email: str = "citizen@rightpath.local"
+    citizen_password: str = "change-me-citizen"
+    citizen_display_name: str = "Hina Khan"
     fetch_remote: bool = True
 
     port: int = 8000

@@ -1,37 +1,58 @@
 {% extends "base.html" %}
-{% from "macros.html" import human_mark, human_stops, page_intro %}
+{% from "macros.html" import human_mark, human_stops %}
 {% block title %}Reviews — RightPath{% endblock %}
+{% block body_class %} page-desk{% endblock %}
 {% block content %}
-  {{ page_intro("People who may lose support", "You see a name and the eligibility change. You do not see the rest of their profile. Nothing reaches them until you release it.") }}
-  {{ human_stops("release") }}
+  <section class="desk-hero">
+    <div class="desk-hero-copy">
+      <h1>Reviews</h1>
+      <p class="lede">
+        You see a name and the eligibility change. You do not see the rest of their profile.
+        Nothing reaches them until you release it.
+      </p>
+      <div class="prog-stops desk-stops">
+        <span class="prog-stops-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3"/><path d="M5 19c1.5-3.2 4-4.8 7-4.8s5.5 1.6 7 4.8"/></svg>
+        </span>
+        <div class="prog-stops-body">
+          {{ human_stops("release") }}
+        </div>
+      </div>
+    </div>
+  </section>
 
-  {% for item in items %}
-    <section class="sheet sheet-seal">
-      <div class="sheet-head">
-        <h2 class="sheet-title">{{ item.detail.display_name }}</h2>
-        {{ human_mark() }}
-      </div>
-      <p><strong>{{ titles.get(item.row.program_id, "A programme") }}</strong></p>
-      <p>{{ item.detail.meaning or kind_label(item.row.kind) }}</p>
-      <p>{{ status_shift(item.detail.before, item.detail.after) }}</p>
-      {% if item.detail.quote %}
-        <p class="quote">“{{ item.detail.quote }}”</p>
-      {% endif %}
-      <p class="meta">A person releases this. The model does not.</p>
-      <div class="actions">
-        <form method="post" action="/navigator/{{ item.row.id }}/release">
-          <button class="btn btn-seal" type="submit">Release this alert</button>
-        </form>
-        {% if item.row.status != "held" %}
-          <form method="post" action="/navigator/{{ item.row.id }}/hold">
-            <button class="btn btn-secondary" type="submit">Hold</button>
-          </form>
-        {% else %}
-          <span class="mark">Held</span>
-        {% endif %}
-      </div>
-    </section>
-  {% else %}
-    <p class="empty">No one is waiting. A review appears when an approved rule change would take support away.</p>
-  {% endfor %}
+  <section class="desk-section" aria-labelledby="reviews-heading">
+    <h2 id="reviews-heading">Waiting for a decision</h2>
+    <div class="desk-reviews">
+      {% for item in items %}
+        <article class="desk-review">
+          <div class="desk-review-head">
+            <h3>{{ item.detail.display_name }}</h3>
+            {{ human_mark() }}
+          </div>
+          <p class="desk-review-program"><strong>{{ titles.get(item.row.program_id, "A programme") }}</strong></p>
+          <p>{{ item.detail.meaning or kind_label(item.row.kind) }}</p>
+          <p>{{ status_shift(item.detail.before, item.detail.after) }}</p>
+          {% if item.detail.quote %}
+            <p class="quote">“{{ item.detail.quote }}”</p>
+          {% endif %}
+          <p class="meta">A person releases this. The model does not.</p>
+          <div class="actions">
+            <form method="post" action="/navigator/{{ item.row.id }}/release">
+              <button class="btn btn-seal" type="submit">Release this alert</button>
+            </form>
+            {% if item.row.status != "held" %}
+              <form method="post" action="/navigator/{{ item.row.id }}/hold">
+                <button class="btn btn-secondary" type="submit">Hold</button>
+              </form>
+            {% else %}
+              <span class="mark">Held</span>
+            {% endif %}
+          </div>
+        </article>
+      {% else %}
+        <p class="empty desk-empty">No one is waiting. A review appears when an approved rule change would take support away.</p>
+      {% endfor %}
+    </div>
+  </section>
 {% endblock %}

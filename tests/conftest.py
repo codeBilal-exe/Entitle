@@ -30,11 +30,18 @@ def api_client(monkeypatch):
     monkeypatch.setenv("STAFF_ONE_PASSWORD", "test-staff-1")
     monkeypatch.setenv("STAFF_TWO_EMAIL", "staff.two@rightpath.local")
     monkeypatch.setenv("STAFF_TWO_PASSWORD", "test-staff-2")
+    monkeypatch.setenv("CITIZEN_EMAIL", "citizen@rightpath.local")
+    monkeypatch.setenv("CITIZEN_PASSWORD", "test-citizen")
+    monkeypatch.setenv("CITIZEN_DISPLAY_NAME", "Hina Khan")
+    monkeypatch.setenv("GROQ_API_KEY", "")
+    monkeypatch.setenv("GROQ_API_KEYS", "")
 
     # Rebuild settings + engine bound to the test DB.
     from app.config import get_settings
+    from app.services.groq_pool import reset_groq_pool
 
     get_settings.cache_clear()
+    reset_groq_pool()
 
     import app.db as dbmod
     from app.db import Base
@@ -48,6 +55,9 @@ def api_client(monkeypatch):
     dbmod.SessionLocal = sessionmaker(
         bind=dbmod.engine, autoflush=False, autocommit=False
     )
+    # Models must be imported so metadata includes every table before create_all.
+    import app.models  # noqa: F401
+
     Base.metadata.drop_all(bind=dbmod.engine)
     Base.metadata.create_all(bind=dbmod.engine)
 
@@ -63,3 +73,4 @@ def api_client(monkeypatch):
         yield client
 
     get_settings.cache_clear()
+    reset_groq_pool()

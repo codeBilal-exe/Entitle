@@ -7,9 +7,8 @@ import re
 from copy import deepcopy
 from typing import Any
 
-import httpx
-
 from app.config import get_settings
+from app.services.groq_pool import get_groq_pool
 
 
 AGE_BAND_RE = re.compile(
@@ -48,7 +47,8 @@ def draft_from_notice_llm(
 ) -> dict[str, Any] | None:
     """Ask Groq to draft an updated Rule Pack. Returns None if unavailable/fails."""
     settings = get_settings()
-    if not settings.groq_api_key:
+    pool = get_groq_pool()
+    if len(pool) == 0:
         return None
 
     system = (
@@ -65,34 +65,27 @@ def draft_from_notice_llm(
         f"{notice_text}\n\n"
         "Return the updated Rule Pack JSON only."
     )
-    try:
-        response = httpx.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {settings.groq_api_key}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": settings.llm_model,
-                "temperature": 0,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-                "response_format": {"type": "json_object"},
-            },
-            timeout=45.0,
-        )
-        response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"]
-        draft = json.loads(content)
-        if "conditions" not in draft:
-            return None
-        draft["version"] = int(live_rules.get("version", 1)) + 1
-        draft.setdefault("id", live_rules.get("id"))
-        return draft
-    except Exception:
+    content = pool.complete(
+        [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        model=settings.llm_model,
+        temperature=0,
+        response_format={"type": "json_object"},
+        timeout=45.0,
+    )
+    if not content:
         return None
+    try:
+        draft = json.loads(content)
+    except json.JSONDecodeError:
+        return None
+    if "conditions" not in draft:
+        return None
+    draft["version"] = int(live_rules.get("version", 1)) + 1
+    draft.setdefault("id", live_rules.get("id"))
+    return draft
 
 
 def draft_rule_pack(

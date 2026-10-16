@@ -1,11 +1,17 @@
 {% extends "base.html" %}
-{% from "macros.html" import human_mark, page_intro %}
+{% from "macros.html" import human_mark %}
 {% block title %}Activity — RightPath{% endblock %}
+{% block body_class %} page-desk{% endblock %}
 {% block content %}
-  {{ page_intro("Activity", "What the watcher did, and which steps a person approved.") }}
+  <section class="desk-hero">
+    <div class="desk-hero-copy">
+      <h1>Activity</h1>
+      <p class="lede">What the watcher did, and which steps a person approved.</p>
+    </div>
+  </section>
 
-  <section class="sheet sheet-plain">
-    <ul class="docket">
+  <section class="desk-panel desk-panel-plain">
+    <ul class="docket desk-docket">
       {% for event in events %}
         <li class="{% if event.human_decision %}human{% endif %}">
           <div>

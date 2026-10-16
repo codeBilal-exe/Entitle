@@ -6,7 +6,7 @@
   {{ human_stops("packet") }}
 
   {% if request.query_params.get('sent') %}
-    {{ flash_ok("The packet is marked sent. Activity has the delivery note.") }}
+    {{ flash_ok("The packet is marked sent. You can keep working from programmes or alerts.") }}
   {% endif %}
   {% if request.query_params.get('error') %}
     {{ flash_err("Send stopped: " ~ request.query_params.get('error')|replace('_', ' ')) }}
@@ -61,7 +61,7 @@
     {% if pack_name %}
       <a class="btn btn-secondary" href="/applications/{{ application.id }}/pack">Download manual pack</a>
     {% endif %}
-    <a class="btn btn-secondary" href="/timeline">Open activity</a>
+    <a class="btn btn-secondary" href="/alerts">Your alerts</a>
     <a class="btn btn-secondary" href="/">Back to programmes</a>
   </div>
 {% endblock %}

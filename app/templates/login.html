@@ -106,7 +106,7 @@
           <div class="flash flash-ok" role="status">Your stored profile and applications were cleared. You are signed out.</div>
         {% endif %}
 
-        <section class="auth-mode auth-mode-signin" aria-labelledby="signin-heading">
+        <section class="auth-mode auth-mode-signin" aria-labelledby="signin-heading" {% if signup_error %}hidden{% endif %}>
           <h2 id="signin-heading">Welcome Back</h2>
           <p class="auth-card-lede">Sign in to your RightPath account</p>
           {% if error %}
@@ -118,7 +118,7 @@
               <span class="auth-field-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 7 9-7"/></svg>
               </span>
-              <input id="email" name="email" type="email" autocomplete="username" required placeholder="Enter your email address">
+              <input id="email" name="email" type="email" autocomplete="username" required placeholder="Enter your email address" value="{{ login_email or '' }}">
             </div>
             <label class="label" for="password">Password</label>
             <div class="auth-field">
@@ -132,12 +132,6 @@
               </button>
             </div>
             <input type="hidden" name="next_path" value="{{ next_path or '/' }}">
-            <div class="auth-form-row">
-              <label class="auth-check">
-                <input type="checkbox" name="remember" value="1">
-                <span>Remember me</span>
-              </label>
-            </div>
             <button class="btn auth-submit" type="submit"><span aria-hidden="true">→</span> Sign in</button>
           </form>
         </section>
@@ -154,14 +148,14 @@
               <span class="auth-field-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 19c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
               </span>
-              <input id="display_name" name="display_name" type="text" autocomplete="name" required placeholder="Your name">
+              <input id="display_name" name="display_name" type="text" autocomplete="name" required placeholder="Your name" value="{{ signup_name or '' }}">
             </div>
             <label class="label" for="signup_email">Email</label>
             <div class="auth-field">
               <span class="auth-field-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 7 9-7"/></svg>
               </span>
-              <input id="signup_email" name="email" type="email" autocomplete="email" required placeholder="Enter your email address">
+              <input id="signup_email" name="email" type="email" autocomplete="email" required placeholder="Enter your email address" value="{{ signup_email or '' }}">
             </div>
             <label class="label" for="signup_password">Password</label>
             <div class="auth-field">

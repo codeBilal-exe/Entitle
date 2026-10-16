@@ -4,4 +4,4 @@ RightPath watches official programme pages, drafts a rule change only from quote
 
 The running product is in `app/`. These notes describe that product: citizen, staff, and admin roles, real sources, and the three human stops.
 
-Start with the repository `README.md` for how to run it. Passwords for the one admin account and the two staff accounts come from the environment. They are not listed on the sign-in page. Citizens sign up themselves and start with an empty profile.
+Start with the repository `README.md` for how to run it. Demo logins (citizen, staff, admin) are in `DEMO_ACCOUNTS.md`. The short pitch script is `DEMO_FLOW.md`. Passwords come from the environment and are not listed on the sign-in page. New citizen sign-ups still start with an empty profile.

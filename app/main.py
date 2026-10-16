@@ -27,7 +27,7 @@ from app.models import (
     User,
 )
 from app.security import hash_password, mount_session, verify_password
-from app.seed import ensure_catalogue, ensure_staff, seed_if_empty
+from app.seed import ensure_catalogue, ensure_demo_accounts, ensure_demo_approved_rules, seed_if_empty
 from app.services import pulse
 from app.services.explainer import short_reason
 from app.services import plain
@@ -83,9 +83,11 @@ def on_startup() -> None:
     db = SessionLocal()
     try:
         seed_if_empty(db)
-        ensure_staff(db)
+        ensure_demo_accounts(db)
         ensure_catalogue(db)
         pulse.check_sources(db, auto_ingest=False)
+        # After the watcher: restore demo quotes so a failed fetch cannot wipe eligibility.
+        ensure_demo_approved_rules(db)
     finally:
         db.close()
     start_scheduler()
@@ -328,6 +330,7 @@ def login(
             signup_error=None,
             deleted=False,
             next_path=next_path or "/",
+            login_email=email.strip(),
         )
     request.session["user_id"] = user.id
     log_event(db, stage="login", detail=f"{user.email} signed in", case_id=str(user.id))
@@ -363,6 +366,8 @@ def signup(
             signup_error=error,
             deleted=False,
             next_path="/",
+            signup_name=name,
+            signup_email=address,
         )
     user = User(
         email=address,
@@ -450,34 +455,16 @@ def profile_save(
     if user.role != "citizen":
         return deny(request, db)
     existing = own_profile(db, user)
-    existing_attrs = profile_attrs(existing)
     has_profile = existing is not None
     consent_on = consent_notifications == "1"
-    if not age.isdigit() or not (0 <= int(age) <= 120):
-        return render(
-            request,
-            "profile.html",
-            db,
-            status_code=400,
-            attrs=existing_attrs,
-            has_profile=has_profile,
-            consent_notifications=consent_on,
-            completeness=profile_completeness(existing_attrs, has_profile),
-            error="Enter your age as a number.",
-        )
-    if education_level not in {"primary", "secondary", "tertiary"}:
-        return render(
-            request,
-            "profile.html",
-            db,
-            status_code=400,
-            attrs=existing_attrs,
-            has_profile=has_profile,
-            consent_notifications=consent_on,
-            completeness=profile_completeness(existing_attrs, has_profile),
-            error="Choose an education level.",
-        )
-    attrs: dict[str, Any] = {"age": int(age), "education_level": education_level}
+    draft_attrs: dict[str, Any] = {}
+    if age.isdigit():
+        draft_attrs["age"] = int(age)
+    elif age.strip():
+        # Keep a typed invalid age visible after validation fails.
+        draft_attrs["age"] = age.strip()
+    if education_level in {"primary", "secondary", "tertiary"}:
+        draft_attrs["education_level"] = education_level
     for key, raw in (
         ("disability", disability),
         ("low_income", low_income),
@@ -486,7 +473,32 @@ def profile_save(
     ):
         value = _optional_bool(raw)
         if value is not None:
-            attrs[key] = value
+            draft_attrs[key] = value
+    if not age.isdigit() or not (0 <= int(age) <= 120):
+        return render(
+            request,
+            "profile.html",
+            db,
+            status_code=400,
+            attrs=draft_attrs,
+            has_profile=has_profile,
+            consent_notifications=consent_on,
+            completeness=profile_completeness(draft_attrs, has_profile),
+            error="Enter an age between 0 and 120.",
+        )
+    if education_level not in {"primary", "secondary", "tertiary"}:
+        return render(
+            request,
+            "profile.html",
+            db,
+            status_code=400,
+            attrs=draft_attrs,
+            has_profile=has_profile,
+            consent_notifications=consent_on,
+            completeness=profile_completeness(draft_attrs, has_profile),
+            error="Choose an education level.",
+        )
+    attrs = draft_attrs
     profile = existing
     if profile is None:
         profile = Profile(user_id=user.id, attributes_json=json.dumps(attrs))

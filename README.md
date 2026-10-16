@@ -26,11 +26,11 @@ Passwords are hashed with bcrypt. Accounts, profiles, applications, and alerts l
 
 ## Sign-in
 
-The sign-in page is an empty email and password form, plus Sign up. No account is filled in. No premade citizen profiles.
+The sign-in page is an empty email and password form, plus Sign up. No account is filled in on that page.
 
-After sign-up, the citizen lands on an empty profile and enters age, education, and any optional answers themselves.
+For demos, startup recreates one premade citizen (filled profile) plus staff/admin from the environment. Credentials live in `docs/DEMO_ACCOUNTS.md` (and `.env`). They are not listed on the sign-in page. New sign-ups still get an empty profile.
 
-Staff and admin passwords are set in the environment (see `.env.example`). They are not listed on the sign-in page.
+Walkthrough script: `docs/DEMO_FLOW.md`.
 
 ## Programmes
 
@@ -68,7 +68,7 @@ copy .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-Open http://127.0.0.1:8000 and sign up. To use staff or admin, set the emails and passwords in `.env` and restart.
+Open http://127.0.0.1:8000. Sign in with the demo accounts in `docs/DEMO_ACCOUNTS.md`, or sign up a new citizen.
 
 ## Tests
 

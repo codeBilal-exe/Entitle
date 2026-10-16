@@ -87,9 +87,12 @@ def test_gold_set_deterministic_quotes_pass_and_age_updates():
 
 def test_draft_rule_pack_falls_back_without_api_key(monkeypatch):
     monkeypatch.setenv("GROQ_API_KEY", "")
+    monkeypatch.setenv("GROQ_API_KEYS", "")
     from app.config import get_settings
+    from app.services.groq_pool import reset_groq_pool
 
     get_settings.cache_clear()
+    reset_groq_pool()
     draft, method = draft_rule_pack(LIVE, GOLD[0]["notice"], prefer_llm=True)
     assert method == "deterministic"
     assert next(c for c in draft["conditions"] if c["id"] == "c2")["value"] == [18, 35]

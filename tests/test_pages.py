@@ -80,11 +80,80 @@ def test_citizen_home_after_profile(api_client):
     assert "Demo sample" not in home.text
 
 
+def test_profile_keeps_typed_values_on_validation_error(api_client):
+    api_client.post(
+        "/signup",
+        data={"display_name": "Hina Khan", "email": "hina@example.com", "password": "citizen-pass"},
+        follow_redirects=False,
+    )
+    bad = api_client.post(
+        "/profile",
+        data={"age": "999", "education_level": "secondary", "disability": "yes"},
+        follow_redirects=False,
+    )
+    assert bad.status_code == 400
+    assert "Enter an age between 0 and 120." in bad.text
+    assert 'value="999"' in bad.text
+    assert "selected" in bad.text
+    assert "University or college" not in bad.text or 'value="secondary"' in bad.text
+
+
+def test_application_page_does_not_send_citizens_to_admin_timeline(api_client):
+    api_client.post(
+        "/signup",
+        data={"display_name": "Hina Khan", "email": "hina@example.com", "password": "citizen-pass"},
+        follow_redirects=False,
+    )
+    api_client.post(
+        "/profile",
+        data={"age": "22", "education_level": "secondary"},
+        follow_redirects=False,
+    )
+    started = api_client.post(
+        "/apply/pk_hec_scholarships",
+        data={
+            "full_name": "Hina Khan",
+            "contact_email": "hina@example.com",
+            "age": "22",
+            "education_level": "secondary",
+        },
+        follow_redirects=False,
+    )
+    assert started.status_code == 303
+    page = api_client.get(started.headers["location"])
+    assert page.status_code == 200
+    assert 'href="/timeline"' not in page.text
+    assert 'href="/alerts"' in page.text
+
+
+def test_premade_citizen_has_a_filled_profile(api_client):
+    login = _login(api_client, "citizen@rightpath.local", "test-citizen")
+    assert login.status_code == 303
+    home = api_client.get("/")
+    assert home.status_code == 200
+    assert "What matches you" in home.text
+    assert "Your profile is empty" not in home.text
+    assert "Prepare an application" in home.text
+    assert "HEC need-based scholarships" in home.text
+    profile = api_client.get("/profile")
+    assert profile.status_code == 200
+    assert "No profile yet" not in profile.text
+    assert 'value="22"' in profile.text
+    apply_page = api_client.get("/apply/pk_hec_need_based")
+    assert apply_page.status_code == 200
+    assert "Review the packet" in apply_page.text
+
+
 def test_staff_desk_and_curator(api_client):
     _login(api_client, "staff.one@rightpath.local", "test-staff-1")
     home = api_client.get("/")
     assert home.status_code == 200
-    assert "Staff desk" in home.text
+    assert "Desk" in home.text
+    assert "Admin desk" not in home.text
+    assert "Staff desk" not in home.text
+    assert "Review drafts" in home.text
+    assert "Release or hold" in home.text
+    assert 'href="/timeline"' not in home.text
     curator = api_client.get("/curator")
     assert curator.status_code == 200
     assert "Watched sources" in curator.text
@@ -95,6 +164,12 @@ def test_staff_desk_and_curator(api_client):
 
 def test_admin_sees_sending_switch_and_activity(api_client):
     _login(api_client)
+    home = api_client.get("/")
+    assert home.status_code == 200
+    assert "Desk" in home.text
+    assert "Admin desk" not in home.text
+    assert "Staff desk" not in home.text
+    assert 'href="/timeline"' in home.text
     curator = api_client.get("/curator")
     assert "Turn sending" in curator.text
     assert api_client.get("/timeline").status_code == 200
