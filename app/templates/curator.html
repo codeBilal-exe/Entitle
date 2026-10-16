@@ -2,24 +2,33 @@
 {% block title %}Curator — RightPath{% endblock %}
 {% block content %}
   <h1>Curator desk</h1>
-  <p class="lede">AI may draft. Quote checks are code. Nothing goes live without your approval.</p>
+  <p class="lede">AI may draft. Quote checks are code. Nothing goes live without your approval. The Core watcher also polls sources on a schedule.</p>
+  {% if request.query_params.get('checked') %}
+    <div class="flash-ok">Source check finished. No new pending draft (hash unchanged or already processed).</div>
+  {% endif %}
 
   <div class="split">
     <div class="panel">
       <p class="panel-title">DEMO notice (edit to trigger a rule change)</p>
       <form method="post" action="/curator/demo-notice">
         <textarea name="body" required>{{ notice.body if notice else "" }}</textarea>
-        <p class="meta">Hero tip: live rules start at 18–45. Change the notice to “18 and 35”, save, then run ingest — Amina (40) goes to the navigator queue; good-news cases stay consented.</p>
+        <p class="meta">Hero tip: live rules start at 18–45. Change the notice to “18 and 35”, save, then either <strong>Check sources now</strong> or <strong>Run ingest now</strong>. Amina (40) goes to the navigator queue.</p>
         <button class="btn" type="submit">Save DEMO notice</button>
       </form>
     </div>
     <div class="panel">
-      <p class="panel-title">Ingestion</p>
-      <p>Create a draft rule version from the DEMO notice, run QuoteGate, and open review.</p>
-      <form method="post" action="/curator/ingest-demo">
-        <button class="btn" type="submit">Run ingest now</button>
+      <p class="panel-title">Automation controls</p>
+      <form method="post" action="/curator/check-now" style="margin-bottom:0.75rem">
+        <button class="btn" type="submit">Check sources now</button>
       </form>
-      <p style="margin-top:1rem"><a href="/demo/notices/inclusive-hiring">View public DEMO notice</a></p>
+      <form method="post" action="/curator/ingest-demo" style="margin-bottom:0.75rem">
+        <button class="btn btn-secondary" type="submit">Run ingest now</button>
+      </form>
+      <form method="post" action="/curator/replay">
+        <button class="btn btn-secondary" type="submit">REPLAY tighten</button>
+      </form>
+      <p class="meta" style="margin-top:1rem">REPLAY is labeled in the timeline for offline demos.</p>
+      <p><a href="/demo/notices/inclusive-hiring">View public DEMO notice</a></p>
     </div>
   </div>
 

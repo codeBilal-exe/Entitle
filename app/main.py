@@ -10,11 +10,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from app.api_internal import router as internal_router
 from app.config import get_settings
 from app.db import SessionLocal, get_db, init_db
 from app.engine.approval_gate import ApprovalGate, ApplicationState
-from app.engine.case_impact import CaseImpact
-from app.engine.quote_gate import QuoteGate
 from app.engine.rule_engine import RuleEngine, Status
 from app.models import (
     Application,
@@ -29,20 +28,21 @@ from app.models import (
 )
 from app.security import mount_session, verify_password
 from app.seed import seed_if_empty
+from app.services import pulse
 from app.services.questions import QuestionEngine
+from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.timeline import log_event
 
 settings = get_settings()
-app = FastAPI(title="RightPath", version="0.1.0")
+app = FastAPI(title="RightPath", version="0.2.0")
 mount_session(app, settings.secret_key)
+app.include_router(internal_router)
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 rule_engine = RuleEngine()
-quote_gate = QuoteGate()
-case_impact = CaseImpact(rule_engine)
 question_engine = QuestionEngine(rule_engine)
 approval_gate = ApprovalGate()
 
@@ -54,8 +54,16 @@ def on_startup() -> None:
     db = SessionLocal()
     try:
         seed_if_empty(db)
+        # Baseline hashes so the first watcher run does not false-trigger.
+        pulse.check_sources(db, auto_ingest=False)
     finally:
         db.close()
+    start_scheduler()
+
+
+@app.on_event("shutdown")
+def on_shutdown() -> None:
+    stop_scheduler()
 
 
 def current_user(request: Request, db: Session) -> User | None:
@@ -73,12 +81,7 @@ def require_user(request: Request, db: Session) -> User:
 
 
 def load_rules(db: Session, program: Program) -> dict[str, Any]:
-    if not program.current_version_id:
-        return {"conditions": []}
-    version = db.get(ProgramVersion, program.current_version_id)
-    if not version:
-        return {"conditions": []}
-    return json.loads(version.rules_json)
+    return pulse.load_rules(db, program)
 
 
 def all_live_rules(db: Session) -> list[dict[str, Any]]:
@@ -87,9 +90,7 @@ def all_live_rules(db: Session) -> list[dict[str, Any]]:
 
 
 def profile_attrs(profile: Profile | None) -> dict[str, Any]:
-    if not profile:
-        return {}
-    return json.loads(profile.attributes_json or "{}")
+    return pulse.profile_attrs(profile)
 
 
 def base_ctx(request: Request, db: Session, **extra: Any) -> dict[str, Any]:
@@ -319,58 +320,43 @@ def update_demo_notice(
 
 @app.post("/curator/ingest-demo")
 def ingest_demo(request: Request, db: Session = Depends(get_db)):
-    """Deterministic demo ingest (no LLM required for the hero path)."""
     user = current_user(request, db)
     if not user or user.role not in {"curator", "admin"}:
         return RedirectResponse("/login", status_code=303)
 
     notice = db.get(DemoNotice, "inclusive-hiring")
-    program = db.get(Program, "demo_pk_work_01")
-    if not notice or not program:
+    if not notice:
         return RedirectResponse("/curator", status_code=303)
-
-    live = load_rules(db, program)
-    # Draft widens age band 18-35 -> 18-45 using quotes from the notice text.
-    # Curator edits the notice first in the demo so QuoteGate passes.
-    draft = json.loads(json.dumps(live))
-    draft["version"] = int(live.get("version", 1)) + 1
-    # Infer age band from the controllable DEMO notice text so the live demo
-    # can widen (good news) or tighten (navigator review) on cue.
-    for condition in draft.get("conditions") or []:
-        if condition.get("id") != "c2":
-            continue
-        if "aged between 18 and 35 years" in notice.body:
-            condition["value"] = [18, 35]
-            condition["source_quote"] = "aged between 18 and 35 years"
-        elif "aged between 18 and 45 years" in notice.body:
-            condition["value"] = [18, 45]
-            condition["source_quote"] = "aged between 18 and 45 years"
-
-    quote_result = quote_gate.check(notice.body, draft)
-    diff = case_impact.diff_conditions(live, draft)
-    job = IngestionJob(
-        program_id=program.id,
-        notice_text=notice.body,
-        draft_json=json.dumps(draft),
-        quote_check_json=json.dumps(
-            {
-                "passed": quote_result.passed,
-                "items": quote_result.items,
-                "failed_ids": quote_result.failed_ids,
-            }
-        ),
-        diff_json=json.dumps(diff),
-        status="pending_review",
-    )
-    db.add(job)
-    db.commit()
-    log_event(
-        db,
-        stage="ingest_draft",
-        detail=f"Draft v{draft['version']} for {program.id}; quote_gate={quote_result.passed}",
-        case_id=program.id,
+    job = pulse.create_ingest_job(
+        db, "demo_pk_work_01", notice.body, prefer_llm=True
     )
     return RedirectResponse(f"/curator/jobs/{job.id}", status_code=303)
+
+
+@app.post("/curator/check-now")
+def curator_check_now(request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user or user.role not in {"curator", "admin"}:
+        return RedirectResponse("/login", status_code=303)
+    result = pulse.check_sources(db, auto_ingest=True)
+    changed = [s for s in result.get("sources", []) if s.get("changed")]
+    if changed and changed[0].get("ingestion_job_id"):
+        return RedirectResponse(
+            f"/curator/jobs/{changed[0]['ingestion_job_id']}", status_code=303
+        )
+    return RedirectResponse("/curator?checked=1", status_code=303)
+
+
+@app.post("/curator/replay")
+def curator_replay(request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user or user.role not in {"curator", "admin"}:
+        return RedirectResponse("/login", status_code=303)
+    result = pulse.run_replay_tighten(db)
+    job_id = result.get("ingestion_job_id")
+    if job_id:
+        return RedirectResponse(f"/curator/jobs/{job_id}", status_code=303)
+    return RedirectResponse("/curator", status_code=303)
 
 
 @app.get("/curator/jobs/{job_id}", response_class=HTMLResponse)
@@ -399,107 +385,11 @@ def approve_job(job_id: int, request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user or user.role not in {"curator", "admin"}:
         return RedirectResponse("/login", status_code=303)
-    job = db.get(IngestionJob, job_id)
-    if not job or job.status != "pending_review":
+    result = pulse.approve_and_fan_out(db, job_id, reviewed_by=user.email)
+    if not result.get("ok"):
+        if result.get("error") == "quote_gate_failed":
+            return RedirectResponse(f"/curator/jobs/{job_id}?error=quote", status_code=303)
         return RedirectResponse("/curator", status_code=303)
-
-    quote_check = json.loads(job.quote_check_json)
-    if not quote_check.get("passed"):
-        return RedirectResponse(f"/curator/jobs/{job_id}?error=quote", status_code=303)
-
-    program = db.get(Program, job.program_id)
-    if not program:
-        return RedirectResponse("/curator", status_code=303)
-
-    old_rules = load_rules(db, program)
-    draft = json.loads(job.draft_json)
-    version = ProgramVersion(
-        program_id=program.id,
-        version=int(draft.get("version", 1)),
-        rules_json=json.dumps(draft),
-        source_url=draft.get("source_url", ""),
-        last_verified=draft.get("last_verified", ""),
-        approved_by=user.email,
-        status="live",
-    )
-    db.add(version)
-    db.flush()
-    program.current_version_id = version.id
-    job.status = "approved"
-    job.reviewed_by = user.email
-
-    log_event(
-        db,
-        stage="rule_approved",
-        detail=f"{user.email} approved {program.id} v{version.version}",
-        case_id=program.id,
-        human_decision=True,
-    )
-
-    # Fan-out over applicant profiles
-    applicants = db.query(User).filter(User.role == "applicant").all()
-    for applicant in applicants:
-        profile = db.query(Profile).filter(Profile.user_id == applicant.id).first()
-        attrs = profile_attrs(profile)
-        change = case_impact.classify_case(
-            str(applicant.id), old_rules, draft, attrs
-        )
-        consent = bool(profile and profile.consent_notifications)
-        route = case_impact.fan_out_route(change, consent)
-        if route == "navigator_review":
-            db.add(
-                Notification(
-                    user_id=applicant.id,
-                    program_id=program.id,
-                    kind="newly_not_eligible",
-                    status="pending_review",
-                    detail_json=json.dumps(
-                        {
-                            "before": change.before.value,
-                            "after": change.after.value,
-                            "display_name": applicant.display_name,
-                        }
-                    ),
-                )
-            )
-            log_event(
-                db,
-                stage="fanout_navigator",
-                detail=f"{applicant.display_name} may no longer qualify — held for navigator",
-                case_id=str(applicant.id),
-                human_decision=True,
-            )
-        elif route == "notify_applicant":
-            db.add(
-                Notification(
-                    user_id=applicant.id,
-                    program_id=program.id,
-                    kind="newly_eligible",
-                    status="queued",
-                    detail_json=json.dumps(
-                        {
-                            "before": change.before.value,
-                            "after": change.after.value,
-                            "display_name": applicant.display_name,
-                        }
-                    ),
-                )
-            )
-            log_event(
-                db,
-                stage="fanout_notify",
-                detail=f"{applicant.display_name} newly eligible — notification queued",
-                case_id=str(applicant.id),
-            )
-        else:
-            log_event(
-                db,
-                stage="fanout_skip",
-                detail=f"{applicant.display_name}: {change.kind}/{route}",
-                case_id=str(applicant.id),
-            )
-
-    db.commit()
     return RedirectResponse("/navigator", status_code=303)
 
 
@@ -721,31 +611,19 @@ def application_send(
     return RedirectResponse(f"/applications/{application_id}?sent=1", status_code=303)
 
 
-# --- Internal / n8n hooks (IDs only) ---
-
-
-@app.get("/api/internal/health")
-def internal_health(request: Request):
-    secret = request.headers.get("x-rightpath-secret", "")
-    if secret != settings.n8n_shared_secret:
-        return {"ok": False, "error": "unauthorized"}
-    return {"ok": True}
-
-
-@app.post("/api/internal/check-sources")
-def internal_check_sources(request: Request, db: Session = Depends(get_db)):
-    secret = request.headers.get("x-rightpath-secret", "")
-    if secret != settings.n8n_shared_secret:
-        return {"ok": False, "error": "unauthorized"}
-    notice = db.get(DemoNotice, "inclusive-hiring")
-    import hashlib
-
-    body = notice.body if notice else ""
-    digest = hashlib.sha256(body.encode("utf-8")).hexdigest()
-    log_event(
-        db,
-        stage="source_check",
-        detail=f"hash={digest[:12]}",
-        case_id="inclusive-hiring",
+@app.get("/notifications", response_class=HTMLResponse)
+def my_notifications(request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+    items = (
+        db.query(Notification)
+        .filter(Notification.user_id == user.id)
+        .order_by(Notification.created_at.desc())
+        .all()
     )
-    return {"ok": True, "sources": [{"id": "inclusive-hiring", "hash": digest}]}
+    parsed = [{"row": i, "detail": json.loads(i.detail_json or "{}")} for i in items]
+    return templates.TemplateResponse(
+        "notifications.html",
+        base_ctx(request, db, items=parsed),
+    )

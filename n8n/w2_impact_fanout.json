@@ -1,0 +1,64 @@
+﻿{
+  "name": "RightPath W2 Impact Fan-out",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rightpath-approve",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "hook-w2",
+      "name": "Approve webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "rightpath-approve"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.RIGHTPATH_BASE_URL || 'http://127.0.0.1:8000') + '/api/internal/approve' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-rightpath-secret", "value": "={{ $env.RIGHTPATH_SHARED_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ job_id: Number($json.body.job_id || $json.job_id), reviewed_by: ($json.body.reviewed_by || $json.reviewed_by || 'n8n') }) }}",
+        "options": {}
+      },
+      "id": "http-approve",
+      "name": "Core approve + fan-out",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [280, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-w2",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [520, 0]
+    }
+  ],
+  "connections": {
+    "Approve webhook": {
+      "main": [[{ "node": "Core approve + fan-out", "type": "main", "index": 0 }]]
+    },
+    "Core approve + fan-out": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "rightpath" }]
+}

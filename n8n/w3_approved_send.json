@@ -1,0 +1,69 @@
+﻿{
+  "name": "RightPath W3 Approved Send",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rightpath-send",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "hook-w3",
+      "name": "Send webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "rightpath-send"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.RIGHTPATH_BASE_URL || 'http://127.0.0.1:8000') + '/api/internal/send' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-rightpath-secret", "value": "={{ $env.RIGHTPATH_SHARED_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ application_id: ($json.body.application_id || $json.application_id) }) }}",
+        "options": {
+          "batching": { "batch": { "batchSize": 1 } }
+        }
+      },
+      "id": "http-send",
+      "name": "Core send",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [280, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-w3",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [520, 0]
+    }
+  ],
+  "connections": {
+    "Send webhook": {
+      "main": [[{ "node": "Core send", "type": "main", "index": 0 }]]
+    },
+    "Core send": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "rightpath" }]
+}

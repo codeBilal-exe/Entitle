@@ -1,11 +1,38 @@
-﻿# n8n workflows
+﻿# n8n workflows for RightPath
 
-Export each workflow as JSON into this folder after you build it on Alternate Clouds.
+Import these JSON files into your Alternate Clouds n8n service after Core is reachable.
 
-Planned workflows:
-- W1 Source Watcher (cron + webhook)
-- W2 Impact Fan-out (webhook from Core after curator approve)
-- W3 Approved Send (optional orchestration around Core send)
+| File | Purpose |
+|---|---|
+| `w1_source_watcher.json` | Cron + "check now" webhook → Core `/api/internal/check-sources` |
+| `w2_impact_fanout.json` | Webhook → Core `/api/internal/approve` (fan-out) |
+| `w3_approved_send.json` | Webhook → Core `/api/internal/send` (retries on fail) |
 
-Core already performs Pulse fan-out in-process so the demo works if n8n is unavailable.
-n8n should call Core with header `x-rightpath-secret` and only pass IDs.
+## Environment in n8n
+
+Set on the n8n service (and reference in nodes):
+
+- `RIGHTPATH_BASE_URL` — public Core URL, e.g. `https://your-core-app.alternatefutures.ai`
+- `RIGHTPATH_SHARED_SECRET` — same value as Core `N8N_SHARED_SECRET`
+- Platform required: `N8N_ENCRYPTION_KEY`, `WEBHOOK_URL`
+
+## Auth
+
+Every Core call sends header:
+
+```
+x-rightpath-secret: <N8N_SHARED_SECRET>
+```
+
+n8n must pass **IDs only** (job_id, application_id). Never profiles or documents.
+
+## Local testing without n8n
+
+Core already runs a background watcher (`ENABLE_SCHEDULER=true`) and exposes the same hooks:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/internal/check-sources?auto_ingest=true ^
+  -H "x-rightpath-secret: dev-shared-secret"
+```
+
+The UI **Check sources now** / **REPLAY tighten** buttons use the same Pulse path.

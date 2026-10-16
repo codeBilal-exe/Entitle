@@ -1,0 +1,61 @@
+﻿{
+  "name": "RightPath W1 Source Watcher",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 15 }]
+        }
+      },
+      "id": "cron-w1",
+      "name": "Every 15 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rightpath-check-now",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "hook-w1",
+      "name": "Check now webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 220],
+      "webhookId": "rightpath-check-now"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.RIGHTPATH_BASE_URL || 'http://127.0.0.1:8000') + '/api/internal/check-sources?auto_ingest=true' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-rightpath-secret", "value": "={{ $env.RIGHTPATH_SHARED_SECRET }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-check",
+      "name": "Core check-sources",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [280, 100]
+    }
+  ],
+  "connections": {
+    "Every 15 minutes": {
+      "main": [[{ "node": "Core check-sources", "type": "main", "index": 0 }]]
+    },
+    "Check now webhook": {
+      "main": [[{ "node": "Core check-sources", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": [{ "name": "rightpath" }]
+}

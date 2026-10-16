@@ -61,11 +61,22 @@ On Alternate Clouds: set Variables first, then **Rebuild**, then **Deploy**. `PO
 ## Hero demo (Pulse)
 
 1. Sign in as `curator@demo.rightpath`
-2. Open **Curator** → edit the DEMO notice age band (for example change `18 and 45` to `18 and 35`) → Save
-3. **Run ingest now** → confirm QuoteGate → **Approve and fan out**
+2. Open **Curator** → edit the DEMO notice age band (`18 and 45` → `18 and 35`) → Save
+3. Click **Check sources now** (or **Run ingest now**) → confirm QuoteGate → **Approve and fan out**
 4. Open **Navigator** — Amina’s lost eligibility is waiting for a human
 5. Open **Timeline** — Human Decision cards are marked
-6. As an applicant, prepare a packet, approve the exact payload, then send
+6. As an applicant, open **Alerts**, prepare a packet, approve the exact payload, then send
+
+Core also runs an in-process source watcher every `WATCHER_INTERVAL_SECONDS` (default 120). n8n workflows in `n8n/` call the same `/api/internal/*` hooks.
+
+### Internal API (local)
+
+Header: `x-rightpath-secret: dev-shared-secret` (or your `N8N_SHARED_SECRET`)
+
+```bash
+curl -X POST "http://127.0.0.1:8000/api/internal/check-sources?auto_ingest=true" ^
+  -H "x-rightpath-secret: dev-shared-secret"
+```
 
 ## Project layout
 

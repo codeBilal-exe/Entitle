@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Notifications — RightPath{% endblock %}
+{% block content %}
+  <h1>Your notifications</h1>
+  <p class="lede">Good-news updates appear here after automation. Bad news waits for a navigator.</p>
+
+  {% for item in items %}
+    <div class="panel">
+      <p class="panel-title">
+        {{ item.row.kind }}
+        <span class="badge">{{ item.row.status }}</span>
+      </p>
+      <p>Programme <code>{{ item.row.program_id }}</code></p>
+      <p class="meta">
+        {{ item.detail.before }} → {{ item.detail.after }}
+        · {{ item.row.created_at }}
+      </p>
+    </div>
+  {% else %}
+    <p class="meta">No notifications yet.</p>
+  {% endfor %}
+{% endblock %}

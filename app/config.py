@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     port: int = 8000
     database_url: str = "sqlite:///./data/rightpath.db"
     replay_mode: bool = False
+    enable_scheduler: bool = True
+    watcher_interval_seconds: int = 120
 
 
 @lru_cache
