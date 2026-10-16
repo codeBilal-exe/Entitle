@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Your profile — RightPath{% endblock %}
+{% block body_class %} page-profile{% endblock %}
+{% block content %}
+  {% set initials = (user.display_name or "U").split() %}
+  {% set avatar = ((initials[0][0] if initials else "U") ~ (initials[1][0] if initials|length > 1 else ""))|upper %}
+  {% set completeness = completeness|default(0) %}
+
+  <div class="profile-hero">
+    <div class="profile-hero-copy">
+      <h1>Your Profile</h1>
+      <p class="lede">Personalize your guidance. You control what you share.</p>
+    </div>
+    <div class="profile-identity">
+      <div class="profile-avatar" aria-hidden="true">{{ avatar }}</div>
+      <div class="profile-identity-meta">
+        <div class="profile-identity-name">
+          <strong>{{ user.display_name }}</strong>
+          <span class="profile-role-badge">Citizen account</span>
+        </div>
+        <div class="profile-complete" aria-label="Profile completeness {{ completeness }} percent">
+          <div class="profile-complete-head">
+            <span>Profile completeness</span>
+            <strong>{{ completeness }}%</strong>
+          </div>
+          <div class="profile-complete-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ completeness }}">
+            <span class="profile-complete-fill" style="width: {{ completeness }}%"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if error %}
+    <div class="flash flash-err" role="alert">{{ error }}</div>
+  {% endif %}
+  {% if not has_profile %}
+    <p class="empty profile-empty">No profile yet. This account has no age, education, or other answers on file.</p>
+  {% endif %}
+
+  <form method="post" action="/profile" class="profile-form" id="profile-form">
+    <div class="profile-grid">
+      <div class="profile-main">
+        <section class="profile-card">
+          <header class="profile-card-head">
+            <span class="profile-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 19c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+            </span>
+            <div>
+              <h2>Essential information</h2>
+              <p>Used to match you with programmes. Required to get started.</p>
+            </div>
+          </header>
+          <div class="profile-fields profile-fields-2">
+            <div class="profile-field">
+              <label class="label" for="age">Age</label>
+              <input id="age" name="age" type="number" min="0" max="120" required value="{{ attrs.age if attrs.age is not none else '' }}">
+            </div>
+            <div class="profile-field">
+              <label class="label" for="education_level">Education</label>
+              <select id="education_level" name="education_level" required>
+                <option value="">Choose one</option>
+                <option value="primary" {% if attrs.education_level == "primary" %}selected{% endif %}>Primary school</option>
+                <option value="secondary" {% if attrs.education_level == "secondary" %}selected{% endif %}>Secondary school</option>
+                <option value="tertiary" {% if attrs.education_level == "tertiary" %}selected{% endif %}>University or college</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="profile-card">
+          <header class="profile-card-head">
+            <span class="profile-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h10M4 12h16M4 17h8"/><circle cx="18" cy="7" r="2"/><circle cx="14" cy="17" r="2"/></svg>
+            </span>
+            <div>
+              <h2>Optional details</h2>
+              <p>Only share what you are comfortable sharing.</p>
+            </div>
+          </header>
+          <fieldset class="optional-set profile-optional">
+            <legend class="visually-hidden">Optional. Leave blank if you prefer not to say.</legend>
+            <div class="profile-fields profile-fields-2">
+              {% for key, label in [("disability", "Do you have a disability?"), ("low_income", "Is household income low?"), ("unemployed", "Are you unemployed?"), ("needs_language_support", "Do you need language support?")] %}
+                <div class="profile-field">
+                  <label class="label" for="{{ key }}">{{ label }}</label>
+                  <select id="{{ key }}" name="{{ key }}">
+                    <option value="">Prefer not to say</option>
+                    <option value="yes" {% if attrs.get(key) is sameas true %}selected{% endif %}>Yes</option>
+                    <option value="no" {% if attrs.get(key) is sameas false %}selected{% endif %}>No</option>
+                  </select>
+                </div>
+              {% endfor %}
+            </div>
+          </fieldset>
+          <p class="profile-lock-note">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>
+            Optional answers are used only to help you discover relevant programmes.
+          </p>
+        </section>
+      </div>
+
+      <aside class="profile-side">
+        <section class="profile-card">
+          <header class="profile-card-head">
+            <span class="profile-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a6 6 0 016 6c0 4-3 6-3 6H9s-3-2-3-6a6 6 0 016-6z"/><path d="M10 19h4"/></svg>
+            </span>
+            <div>
+              <h2>Your preferences</h2>
+            </div>
+          </header>
+          <label class="profile-toggle">
+            <span class="profile-toggle-copy">
+              <strong>Programme change alerts</strong>
+              <span>Get notified when a watched notice changes your result.</span>
+            </span>
+            <span class="profile-switch">
+              <input type="checkbox" name="consent_notifications" value="1" {% if consent_notifications %}checked{% endif %}>
+              <span class="profile-switch-ui" aria-hidden="true"></span>
+            </span>
+          </label>
+        </section>
+
+        <section class="profile-card">
+          <header class="profile-card-head">
+            <span class="profile-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
+            </span>
+            <div>
+              <h2>Your privacy, your choice</h2>
+            </div>
+          </header>
+          <ul class="profile-privacy-list">
+            <li>
+              <a href="/privacy">
+                <span class="profile-privacy-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>
+                </span>
+                <span>
+                  <strong>You choose what to share</strong>
+                  <span>Optional fields stay blank until you answer.</span>
+                </span>
+                <span class="profile-chevron" aria-hidden="true">›</span>
+              </a>
+            </li>
+            <li>
+              <a href="/privacy">
+                <span class="profile-privacy-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
+                </span>
+                <span>
+                  <strong>Nothing changes until you save</strong>
+                  <span>Edits stay on this page until you confirm.</span>
+                </span>
+                <span class="profile-chevron" aria-hidden="true">›</span>
+              </a>
+            </li>
+            <li>
+              <a href="/privacy">
+                <span class="profile-privacy-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 7 9-7"/></svg>
+                </span>
+                <span>
+                  <strong>You approve every outgoing message</strong>
+                  <span>Packets are never sent without your OK.</span>
+                </span>
+                <span class="profile-chevron" aria-hidden="true">›</span>
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="profile-card profile-help">
+          <div class="profile-help-inner">
+            <span class="profile-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 17v-1"/><path d="M10.5 9.5a1.8 1.8 0 113 1.4c-.5.4-1.1.8-1.1 1.6V13"/></svg>
+            </span>
+            <div>
+              <h2>Need help?</h2>
+              <p>Review what is stored and how to delete it.</p>
+              <a class="profile-help-link" href="/privacy">View privacy policy <span aria-hidden="true">→</span></a>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <div class="profile-actions">
+      <button class="btn profile-save" type="submit">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h8"/><path d="M8 16h8"/></svg>
+        Save profile
+      </button>
+      <a class="btn btn-secondary profile-discard" href="/profile">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 7h14"/><path d="M9 7V5h6v2"/><path d="M8 7l1 12h6l1-12"/></svg>
+        Discard changes
+      </a>
+    </div>
+  </form>
+{% endblock %}

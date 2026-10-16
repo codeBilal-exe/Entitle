@@ -1,22 +1,22 @@
 {% extends "base.html" %}
-{% from "macros.html" import page_intro, human_mark %}
-{% block title %}Timeline — RightPath{% endblock %}
+{% from "macros.html" import human_mark, page_intro %}
+{% block title %}Activity — RightPath{% endblock %}
 {% block content %}
-  {{ page_intro("Live timeline", "Every automation step and human decision is recorded on this docket.") }}
+  {{ page_intro("Activity", "What the watcher did, and which steps a person approved.") }}
 
   <section class="sheet sheet-plain">
     <ul class="docket">
       {% for event in events %}
         <li class="{% if event.human_decision %}human{% endif %}">
           <div>
-            <span class="stage">{{ event.stage }}</span>
+            <span class="stage">{{ stage_label(event.stage) }}</span>
             {% if event.human_decision %}{{ human_mark() }}{% endif %}
           </div>
           <div>{{ event.detail }}</div>
-          <div class="meta">{{ event.at }} · case {{ event.case_id or "—" }} · {{ event.status }}</div>
+          <div class="meta">{{ event.at }}{% if event.case_id %} · {{ event.case_id }}{% endif %}</div>
         </li>
       {% else %}
-        <li><p class="empty">No events yet. Run the curator Pulse to see activity.</p></li>
+        <li><p class="empty">Nothing recorded yet. Approve a rule change to see the trail.</p></li>
       {% endfor %}
     </ul>
   </section>

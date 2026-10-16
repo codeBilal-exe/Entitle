@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.db import get_db
 from app.engine.approval_gate import ApprovalGate, ApplicationState
-from app.models import Application, DemoNotice
+from app.models import Application
 from app.services import pulse
 from app.services.mailer import send_application_email
 from app.services.timeline import log_event
@@ -25,8 +25,8 @@ def require_secret(x_rightpath_secret: str = Header(default="")) -> None:
 
 
 class IngestBody(BaseModel):
-    program_id: str = "demo_pk_work_01"
-    notice_text: str | None = None
+    program_id: str
+    notice_text: str
     prefer_llm: bool = True
 
 
@@ -56,9 +56,8 @@ def check_sources(
 @router.post("/ingest")
 def ingest(body: IngestBody, db: Session = Depends(get_db), _: None = Depends(require_secret)):
     text = body.notice_text
-    if not text:
-        notice = db.get(DemoNotice, "inclusive-hiring")
-        text = notice.body if notice else ""
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="notice_text_required")
     job = pulse.create_ingest_job(
         db, body.program_id, text, prefer_llm=body.prefer_llm
     )

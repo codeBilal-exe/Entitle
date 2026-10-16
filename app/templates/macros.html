@@ -2,16 +2,25 @@
   {% if status == "eligible" %}
     <span class="mark mark-ok">Eligible</span>
   {% elif status == "likely" %}
-    <span class="mark mark-warn">Likely</span>
+    <span class="mark mark-warn">Needs an answer</span>
   {% elif status == "not_eligible" %}
     <span class="mark mark-bad">Not eligible</span>
   {% else %}
-    <span class="mark">{{ status }}</span>
+    <span class="mark">{{ eligibility_label(status) }}</span>
   {% endif %}
 {%- endmacro %}
 
 {% macro human_mark() -%}
   <span class="mark mark-seal">Human decision</span>
+{%- endmacro %}
+
+{% macro human_stops(here) -%}
+  <ol class="human-stops" aria-label="Human stops">
+    <li class="{% if here == 'rule' %}is-here{% endif %}">A person approves a rule change.</li>
+    <li class="{% if here == 'release' %}is-here{% endif %}">A person releases bad news.</li>
+    <li class="{% if here == 'packet' %}is-here{% endif %}">The applicant approves the exact packet before it is sent.</li>
+  </ol>
+  <p class="stop-note">A person and a model work together. The model may draft and explain. A person decides.</p>
 {%- endmacro %}
 
 {% macro demo_mark() -%}
@@ -31,4 +40,40 @@
 
 {% macro flash_err(message) -%}
   <div class="flash flash-err" role="alert">{{ message }}</div>
+{%- endmacro %}
+
+{% macro question_form(question, next_path) -%}
+  <form method="post" action="/wizard">
+    <input type="hidden" name="attr" value="{{ question.attr }}">
+    <input type="hidden" name="next_path" value="{{ next_path }}">
+    {% if question.sensitive %}
+      <p class="hint">Sensitive. Answering may unlock about {{ question.unlocks }} programme(s). You can prefer not to say.</p>
+    {% endif %}
+    {% if question.type == "bool" %}
+      <div class="choice-row">
+        <label><input type="radio" name="value" value="true"> Yes</label>
+        <label><input type="radio" name="value" value="false"> No</label>
+      </div>
+    {% elif question.type == "choice" %}
+      <label class="label" for="value">Choose one</label>
+      <select id="value" name="value">
+        <option value="">Select…</option>
+        {% for c in question.choices %}
+          <option value="{{ c }}">{% if question.attr == "education_level" %}{% if c == "primary" %}Primary school{% elif c == "secondary" %}Secondary school{% elif c == "tertiary" %}University or college{% else %}{{ c }}{% endif %}{% else %}{{ c }}{% endif %}</option>
+        {% endfor %}
+      </select>
+    {% elif question.type == "number" %}
+      <label class="label" for="value">Number</label>
+      <input id="value" type="number" name="value" min="0" max="120">
+    {% else %}
+      <label class="label" for="value">Answer</label>
+      <input id="value" type="text" name="value">
+    {% endif %}
+    <div class="actions">
+      <button class="btn" type="submit">Save answer</button>
+      {% if question.sensitive %}
+        <button class="btn btn-secondary" type="submit" name="prefer_not" value="1">Prefer not to say</button>
+      {% endif %}
+    </div>
+  </form>
 {%- endmacro %}

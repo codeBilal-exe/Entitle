@@ -7,7 +7,7 @@ GATE = ApprovalGate()
 PAYLOAD = {
     "program_id": "demo_xx_work_01",
     "to": "intake@example.org",
-    "fields": {"full_name": "Amina Demo", "age": 40},
+    "fields": {"full_name": "Hina Khan", "age": 40},
     "attachments": ["disability_certificate.pdf"],
 }
 
@@ -33,7 +33,7 @@ def test_send_rejected_if_not_approved():
 def test_send_rejected_if_payload_changed():
     _, digest = GATE.approve(ApplicationState.READY.value, PAYLOAD)
     tampered = dict(PAYLOAD)
-    tampered["fields"] = {"full_name": "Amina Demo", "age": 41}
+    tampered["fields"] = {"full_name": "Hina Khan", "age": 41}
     decision = GATE.authorize_send(
         application_id="app-1",
         state=ApplicationState.APPROVED.value,

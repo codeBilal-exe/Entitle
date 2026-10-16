@@ -9,6 +9,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.models import Application, Notification, Program, ProgramVersion, User
+from app.services.plain import alert_copy
 from app.services.timeline import log_event
 
 
@@ -60,6 +61,24 @@ def run_deadline_reminders(db: Session, *, within_days: int = 14) -> dict[str, A
         if existing:
             continue
         user = db.get(User, application.user_id)
+        program = db.get(Program, application.program_id)
+        rules: dict[str, Any] = {}
+        if program and program.current_version_id:
+            version = db.get(ProgramVersion, program.current_version_id)
+            if version:
+                rules = json.loads(version.rules_json or "{}")
+        quote = ""
+        for condition in rules.get("conditions") or []:
+            if condition.get("source_quote"):
+                quote = condition["source_quote"]
+                break
+        copy = alert_copy(
+            "deadline_reminder",
+            program.title if program else "",
+            quote=quote,
+            days_left=days_left,
+            deadline=deadline.isoformat(),
+        )
         db.add(
             Notification(
                 user_id=application.user_id,
@@ -74,6 +93,11 @@ def run_deadline_reminders(db: Session, *, within_days: int = 14) -> dict[str, A
                         "display_name": user.display_name if user else "",
                         "before": "open",
                         "after": "reminder",
+                        "what_changed": copy["what_changed"],
+                        "meaning": copy["meaning"],
+                        "quote": copy["quote"],
+                        "next_step": copy["next_step"],
+                        "released_by": "",
                     }
                 ),
             )

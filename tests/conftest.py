@@ -23,6 +23,13 @@ def api_client(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{TEST_DB.as_posix()}")
     monkeypatch.setenv("ENABLE_SCHEDULER", "false")
     monkeypatch.setenv("N8N_SHARED_SECRET", "dev-shared-secret")
+    monkeypatch.setenv("FETCH_REMOTE", "false")
+    monkeypatch.setenv("ADMIN_EMAIL", "admin@rightpath.local")
+    monkeypatch.setenv("ADMIN_PASSWORD", "test-admin-pass")
+    monkeypatch.setenv("STAFF_ONE_EMAIL", "staff.one@rightpath.local")
+    monkeypatch.setenv("STAFF_ONE_PASSWORD", "test-staff-1")
+    monkeypatch.setenv("STAFF_TWO_EMAIL", "staff.two@rightpath.local")
+    monkeypatch.setenv("STAFF_TWO_PASSWORD", "test-staff-2")
 
     # Rebuild settings + engine bound to the test DB.
     from app.config import get_settings

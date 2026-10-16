@@ -21,7 +21,7 @@ def test_manual_pack_creates_zip(tmp_path, monkeypatch):
         {
             "program_id": "demo_pk_work_01",
             "to": "intake@example.org",
-            "fields": {"full_name": "Amina Demo"},
+            "fields": {"full_name": "Hina Khan"},
             "attachments": ["id_document"],
         },
     )
@@ -29,25 +29,26 @@ def test_manual_pack_creates_zip(tmp_path, monkeypatch):
     assert path.suffix == ".zip"
 
 
-def test_kill_switch_and_reset(api_client):
+def test_admin_can_turn_sending_off(api_client):
     set_send_enabled(True)
     assert is_send_enabled() is True
-    set_send_enabled(False)
-    assert is_send_enabled() is False
-    set_send_enabled(True)
 
     api_client.post(
         "/login",
-        data={"email": "curator@demo.rightpath", "password": "demo1234"},
+        data={"email": "admin@rightpath.local", "password": "test-admin-pass", "next_path": "/"},
         follow_redirects=False,
     )
     page = api_client.get("/curator")
     assert page.status_code == 200
-    assert "Gold-set accuracy" in page.text
-    assert "4/4" in page.text or "100%" in page.text
+    assert "Sending" in page.text
+    assert "Inclusive Hiring" not in page.text
 
-    reset = api_client.post("/curator/reset-demo", follow_redirects=False)
-    assert reset.status_code == 303
+    switched = api_client.post(
+        "/curator/kill-switch", data={"enabled": "0"}, follow_redirects=False
+    )
+    assert switched.status_code == 303
+    assert is_send_enabled() is False
+    set_send_enabled(True)
 
     gold = api_client.get(
         "/api/internal/gold-set", headers={"x-rightpath-secret": "dev-shared-secret"}

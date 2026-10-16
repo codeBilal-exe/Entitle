@@ -1,26 +1,37 @@
 {% extends "base.html" %}
-{% from "macros.html" import page_intro, human_mark %}
-{% block title %}Navigator — RightPath{% endblock %}
+{% from "macros.html" import human_mark, human_stops, page_intro %}
+{% block title %}Reviews — RightPath{% endblock %}
 {% block content %}
-  {{ page_intro("Navigator review", "Bad news never goes straight to the applicant. Review it here first.") }}
+  {{ page_intro("People who may lose support", "You see a name and the eligibility change. You do not see the rest of their profile. Nothing reaches them until you release it.") }}
+  {{ human_stops("release") }}
 
   {% for item in items %}
     <section class="sheet sheet-seal">
       <div class="sheet-head">
-        <h2 class="sheet-title">{{ item.detail.display_name or ('User ' ~ item.row.user_id) }}</h2>
+        <h2 class="sheet-title">{{ item.detail.display_name }}</h2>
         {{ human_mark() }}
       </div>
-      <p>
-        Programme <code>{{ item.row.program_id }}</code> —
-        {{ item.detail.before }} → {{ item.detail.after }}
-      </p>
-      <form method="post" action="/navigator/{{ item.row.id }}/release">
-        <div class="actions">
-          <button class="btn btn-seal" type="submit">Release notification</button>
-        </div>
-      </form>
+      <p><strong>{{ titles.get(item.row.program_id, "A programme") }}</strong></p>
+      <p>{{ item.detail.meaning or kind_label(item.row.kind) }}</p>
+      <p>{{ status_shift(item.detail.before, item.detail.after) }}</p>
+      {% if item.detail.quote %}
+        <p class="quote">“{{ item.detail.quote }}”</p>
+      {% endif %}
+      <p class="meta">A person releases this. The model does not.</p>
+      <div class="actions">
+        <form method="post" action="/navigator/{{ item.row.id }}/release">
+          <button class="btn btn-seal" type="submit">Release this alert</button>
+        </form>
+        {% if item.row.status != "held" %}
+          <form method="post" action="/navigator/{{ item.row.id }}/hold">
+            <button class="btn btn-secondary" type="submit">Hold</button>
+          </form>
+        {% else %}
+          <span class="mark">Held</span>
+        {% endif %}
+      </div>
     </section>
   {% else %}
-    <p class="empty">Queue is empty.</p>
+    <p class="empty">No one is waiting. A review appears when an approved rule change would take support away.</p>
   {% endfor %}
 {% endblock %}

@@ -1,54 +1,242 @@
 {% extends "base.html" %}
-{% from "macros.html" import demo_mark %}
-{% block title %}RightPath — Living entitlements{% endblock %}
+{% from "macros.html" import human_stops, status_badge %}
+{% block title %}{% if user.role == "citizen" %}Programmes{% else %}Desk{% endif %} — RightPath{% endblock %}
+{% block body_class %}{% if user.role == "citizen" %} page-programmes{% endif %}{% endblock %}
 {% block content %}
-  <section class="hero-folio">
-    <div class="hero-copy">
-      <p class="hero-kicker">When a rule changes, the right people should know</p>
-      <h1>Keep entitlements alive.</h1>
-      <p class="lede">
-        RightPath watches official notices, drafts updates with source quotes,
-        and tells people when something changes for them. A human approves every
-        consequential step.
-      </p>
-      <div class="actions">
-        <a class="btn btn-primary-lg" href="/login">Sign in to demo</a>
-        <a class="btn btn-secondary" href="/demo/notices/inclusive-hiring">Read DEMO notice</a>
+  {% if user.role == "citizen" %}
+    <section class="prog-hero">
+      <div class="prog-hero-copy">
+        <h1>What matches you</h1>
+        <p class="lede">
+          {% if not has_profile %}
+            Your profile is empty. Add your age and education. Nothing is stored until you do.
+          {% elif eligible_count %}
+            {{ eligible_count }} programme{{ "s" if eligible_count != 1 else "" }} match the rules a person has approved. Preparing an application does not send it.
+          {% else %}
+            No approved rule matches your profile yet. Alerts appear when a watched notice changes your result.
+          {% endif %}
+        </p>
+        <div class="prog-stops">
+          <span class="prog-stops-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.5"/><path d="M5 19c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+          </span>
+          <div class="prog-stops-body">
+            {{ human_stops("") }}
+          </div>
+        </div>
+        {% if not has_profile %}
+          <p class="actions prog-hero-actions"><a class="btn" href="/profile">Fill in your profile</a></p>
+        {% endif %}
       </div>
-    </div>
-    <aside class="hero-notice" aria-label="Sample notice">
-      <span class="hero-notice-label">Sample notice</span>
-      <h2>Inclusive Hiring Programme</h2>
-      <p>
-        “This programme supports persons with disabilities aged between 18 and 45 years
-        who have completed secondary education or higher.”
-      </p>
-      <p class="meta" style="margin-top:0.85rem">Demo sample · controllable source for the live Pulse</p>
-    </aside>
-  </section>
+    </section>
 
-  <h2>Programmes in this build</h2>
-  <table class="ledger">
-    <thead>
-      <tr>
-        <th>Programme</th>
-        <th>Provider</th>
-        <th>Country</th>
-        <th>Domain</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for program in programs %}
-        <tr>
-          <td>
-            <div class="title">{{ program.title }}</div>
-            {% if program.is_demo_sample %}{{ demo_mark() }}{% endif %}
-          </td>
-          <td class="meta">{{ program.provider }}</td>
-          <td class="meta">{{ program.country }}</td>
-          <td class="meta">{{ program.domain }}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    <section class="prog-section" aria-labelledby="programmes-heading">
+      <h2 id="programmes-heading">Programmes</h2>
+
+      <div class="prog-toolbar" role="search">
+        <label class="prog-filter">
+          <span class="prog-filter-label">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16l-6 7v5l-4 2v-7L4 6z"/></svg>
+            For you
+          </span>
+          <select id="filter-match" data-prog-filter="match">
+            <option value="all">All</option>
+            <option value="eligible">Eligible</option>
+            <option value="likely">Needs an answer</option>
+            <option value="unchecked">Not checked yet</option>
+            <option value="not_eligible">Not eligible</option>
+            <option value="unreachable">Source unreachable</option>
+          </select>
+        </label>
+
+        <label class="prog-filter">
+          <span class="prog-filter-label">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z"/><path d="M9 12l2 2 4-4"/></svg>
+            Level
+          </span>
+          <select id="filter-level" data-prog-filter="level">
+            <option value="all">All levels</option>
+            <option value="education">Education</option>
+            <option value="other">Other programmes</option>
+          </select>
+        </label>
+
+        <label class="prog-filter">
+          <span class="prog-filter-label">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-5.2 7-11a7 7 0 10-14 0c0 5.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+            Area
+          </span>
+          <select id="filter-area" data-prog-filter="area">
+            <option value="all">All areas</option>
+            {% for domain in program_rows|map(attribute='program')|map(attribute='domain')|unique|sort %}
+              <option value="{{ domain }}">{{ domain_label(domain) }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label class="prog-search">
+          <span class="visually-hidden">Search programmes</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+          <input id="filter-search" type="search" placeholder="Search programmes..." data-prog-filter="search" autocomplete="off">
+        </label>
+
+        <p class="prog-count" id="prog-count" aria-live="polite">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+          <span id="prog-count-text">{{ program_rows|length }} programme{{ "s" if program_rows|length != 1 else "" }}</span>
+        </p>
+      </div>
+
+      <div class="ledger-wrap prog-ledger-wrap">
+        <table class="ledger prog-ledger">
+          <thead>
+            <tr>
+              <th>For you</th>
+              <th>Programme</th>
+              <th>Area</th>
+              <th>Next</th>
+            </tr>
+          </thead>
+          <tbody id="prog-rows">
+            {% for row in program_rows %}
+              {% set program = row.program %}
+              {% set rules = row.rules %}
+              {% set domain = program.domain or "education" %}
+              <tr
+                class="prog-row"
+                data-match="{{ row.match }}"
+                data-area="{{ domain }}"
+                data-level="{% if domain == 'education' %}education{% else %}other{% endif %}"
+                data-search="{{ (program.title ~ ' ' ~ program.provider ~ ' ' ~ domain_label(domain))|lower }}"
+              >
+                <td class="prog-match">
+                  {% if row.match == "unreachable" %}
+                    <span class="mark mark-bad">Source unreachable</span>
+                  {% elif row.match == "unchecked" %}
+                    <span class="mark">Not checked yet</span>
+                  {% else %}
+                    {{ status_badge(row.match) }}
+                  {% endif %}
+                </td>
+                <td class="prog-programme">
+                  <div class="prog-programme-inner">
+                    <span class="prog-icon prog-icon-{{ domain }}" aria-hidden="true">
+                      {% if domain == "income" %}
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="6" ry="2.2"/><path d="M6 6v4c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2V6"/><path d="M6 10v4c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2v-4"/><path d="M6 14v4c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2v-4"/></svg>
+                      {% elif domain == "work" %}
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M8 8V6a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M3 13h18"/></svg>
+                      {% elif domain == "health" %}
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-4.4-7-10a4 4 0 017-2.5A4 4 0 0119 11c0 5.6-7 10-7 10z"/></svg>
+                      {% else %}
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V7l8-3 8 3v12"/><path d="M12 4v15"/><path d="M8 10h2M8 14h2M14 10h2M14 14h2"/></svg>
+                      {% endif %}
+                    </span>
+                    <div>
+                      <div class="title"><a href="/programmes/{{ program.id }}">{{ program.title }}</a></div>
+                      <div class="meta">{{ program.provider }}</div>
+                      {% if row.match == "unreachable" %}
+                        <p class="why">This source is unreachable. No rule is shown from a page we could not read.</p>
+                      {% elif row.why and row.match != "unchecked" %}
+                        <p class="why">{{ row.why }}</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td class="prog-area">
+                  <span class="prog-area-chip">
+                    {% if domain == "income" %}
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><ellipse cx="12" cy="6" rx="5" ry="2"/><path d="M7 6v3c0 1 2.2 1.8 5 1.8s5-.8 5-1.8V6"/><path d="M7 9v3c0 1 2.2 1.8 5 1.8s5-.8 5-1.8V9"/><path d="M7 12v3c0 1 2.2 1.8 5 1.8s5-.8 5-1.8v-3"/></svg>
+                    {% elif domain == "education" %}
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 10l9-4 9 4-9 4-9-4z"/><path d="M7 12v4c2 1.5 8 1.5 10 0v-4"/></svg>
+                    {% else %}
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-5.2 7-11a7 7 0 10-14 0c0 5.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
+                    {% endif %}
+                    {{ domain_label(domain) }}
+                  </span>
+                </td>
+                <td class="action prog-next">
+                  {% if has_profile and row.match in ["eligible", "likely"] %}
+                    <a class="prog-next-btn" href="/apply/{{ program.id }}">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h12"/><path d="M13 6l6 6-6 6"/></svg>
+                      Prepare an application
+                      <span class="prog-next-chevron" aria-hidden="true">›</span>
+                    </a>
+                  {% elif rules.official_url %}
+                    <a class="prog-next-btn" href="{{ rules.official_url }}" target="_blank" rel="noopener noreferrer">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M14 5h5v5"/><path d="M10 14L19 5"/><path d="M19 13v5a1 1 0 01-1 1H6a1 1 0 01-1-1V6a1 1 0 011-1h5"/></svg>
+                      Open official page
+                      <span class="prog-next-chevron" aria-hidden="true">›</span>
+                    </a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="prog-empty empty" id="prog-empty" hidden>No programmes match these filters.</p>
+      </div>
+    </section>
+
+    <script>
+      (function () {
+        var rows = Array.prototype.slice.call(document.querySelectorAll(".prog-row"));
+        var empty = document.getElementById("prog-empty");
+        var countText = document.getElementById("prog-count-text");
+        var matchEl = document.getElementById("filter-match");
+        var levelEl = document.getElementById("filter-level");
+        var areaEl = document.getElementById("filter-area");
+        var searchEl = document.getElementById("filter-search");
+
+        function applyFilters() {
+          var match = matchEl.value;
+          var level = levelEl.value;
+          var area = areaEl.value;
+          var q = (searchEl.value || "").trim().toLowerCase();
+          var visible = 0;
+          rows.forEach(function (row) {
+            var ok =
+              (match === "all" || row.getAttribute("data-match") === match) &&
+              (level === "all" || row.getAttribute("data-level") === level) &&
+              (area === "all" || row.getAttribute("data-area") === area) &&
+              (!q || (row.getAttribute("data-search") || "").indexOf(q) !== -1);
+            row.hidden = !ok;
+            if (ok) visible += 1;
+          });
+          if (countText) {
+            countText.textContent = visible + " programme" + (visible === 1 ? "" : "s");
+          }
+          if (empty) empty.hidden = visible !== 0;
+        }
+
+        [matchEl, levelEl, areaEl, searchEl].forEach(function (el) {
+          if (!el) return;
+          el.addEventListener("input", applyFilters);
+          el.addEventListener("change", applyFilters);
+        });
+      })();
+    </script>
+  {% else %}
+    <header class="page-intro">
+      <h1>{% if user.role == "admin" %}Admin desk{% else %}Staff desk{% endif %}</h1>
+      <p class="lede">
+        Watched pages are re-read on a timer. When the text changes, a draft waits here. Approve it only if the quotes match. Bad news waits until a person releases it.
+      </p>
+    </header>
+    {{ human_stops("") }}
+    <section class="pulse">
+      <ol class="pulse-counts">
+        <li><strong>{{ sources|length }}</strong><span>sources watched</span></li>
+        <li><strong>{{ job_count }}</strong><span>drafts waiting</span></li>
+        <li><strong>{{ review_count }}</strong><span>alerts held</span></li>
+      </ol>
+      <div class="pulse-next">
+        <div class="actions">
+          <a class="btn" href="/curator">Review drafts</a>
+          <a class="btn btn-secondary" href="/navigator">Release or hold</a>
+        </div>
+      </div>
+    </section>
+    {% if user.role == "admin" %}
+      <p class="meta">Sending is {% if send_enabled %}on{% else %}off{% endif %}. You can change that under rule changes. The activity log is in the menu.</p>
+    {% endif %}
+  {% endif %}
 {% endblock %}

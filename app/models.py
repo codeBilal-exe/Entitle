@@ -73,8 +73,9 @@ class Source(Base):
     label: Mapped[str] = mapped_column(String(255), default="")
     last_hash: Mapped[str] = mapped_column(String(64), default="")
     last_checked: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    status: Mapped[str] = mapped_column(String(32), default="ok")
+    status: Mapped[str] = mapped_column(String(32), default="not_checked")
     is_demo_controllable: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_text: Mapped[str] = mapped_column(Text, default="")
 
 
 class IngestionJob(Base):
@@ -116,6 +117,7 @@ class Notification(Base):
     status: Mapped[str] = mapped_column(String(32), default="pending_review")
     detail_json: Mapped[str] = mapped_column(Text, default="{}")
     reviewed_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 

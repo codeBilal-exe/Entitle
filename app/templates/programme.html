@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "macros.html" import page_intro %}
+{% block title %}{{ program.title }} — RightPath{% endblock %}
+{% block content %}
+  {{ page_intro(program.title, program.provider) }}
+
+  {% if source and source.status == "unreachable" %}
+    <div class="flash flash-err" role="status">This source is unreachable. RightPath is not showing a rule from a page it could not read.</div>
+  {% elif not source or source.status == "not_checked" %}
+    <div class="flash flash-ok" role="status">This source has not been read yet. No eligibility rule is shown until a fetched quote is approved.</div>
+  {% endif %}
+
+  <section class="sheet">
+    <div class="sheet-head">
+      <h2 class="sheet-title">Official page</h2>
+      <span class="sheet-meta">{{ country_label(program.country) }} · {{ domain_label(program.domain) }}</span>
+    </div>
+    <table class="facts">
+      <tbody>
+        <tr>
+          <th scope="row">Official site</th>
+          <td>
+            {% if rules.official_url %}
+              <a href="{{ rules.official_url }}" target="_blank" rel="noopener noreferrer">{{ rules.official_url }}</a>
+            {% else %}
+              No official URL is stored.
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th scope="row">Last read</th>
+          <td>
+            {% if source %}
+              {{ source_status_label(source.status) }}{% if source.last_checked %} · {{ source.last_checked }}{% endif %}
+            {% else %}
+              Not watched
+            {% endif %}
+          </td>
+        </tr>
+        {% if user.role == "citizen" %}
+          <tr>
+            <th scope="row">For you</th>
+            <td>
+              {% if match == "unreachable" %}Source unreachable
+              {% elif match == "unchecked" %}Not checked yet
+              {% else %}{{ eligibility_label(match) }}{% endif %}
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+    {% if quota %}
+      <p class="quote">“{{ quota }}”</p>
+      <p class="hint">This sentence is on the page RightPath fetched. It is not a guessed quota.</p>
+    {% endif %}
+    {% if excerpt %}
+      <h3>Text from the page</h3>
+      <p class="quote">{{ excerpt }}</p>
+    {% endif %}
+  </section>
+
+  <section class="sheet sheet-plain">
+    <div class="sheet-head">
+      <h2 class="sheet-title">Approved rules</h2>
+    </div>
+    <ul class="checks">
+      {% for c in rules.conditions or [] %}
+        {% if c.source_quote %}
+          <li>
+            <strong>{{ rule_phrase(c) }}</strong>
+            <p class="quote">“{{ c.source_quote }}”</p>
+          </li>
+        {% endif %}
+      {% else %}
+        <li>No rule has been approved from this page yet.</li>
+      {% endfor %}
+    </ul>
+    {% if user.role == "citizen" and match in ["eligible", "likely"] %}
+      <p class="actions"><a class="btn" href="/apply/{{ program.id }}">Prepare an application</a></p>
+    {% endif %}
+  </section>
+{% endblock %}

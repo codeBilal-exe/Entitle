@@ -1,34 +1,41 @@
-# RightPath visual system
+# Design
 
-Subject: official programme notices and living entitlements.  
-Audience: applicants, navigators, curators, and judges.  
-Primary job: make a rule change feel like paperwork moving through a registry — with humans stamping the consequential steps.
+RightPath is a person and a model working together. The model may draft and explain. A person decides. Say that in plain words on the sign-in page, the home page, and every approval step.
 
-## Tokens
+## One job per screen
 
-| Token | Hex | Role |
-|---|---|---|
-| folio | `#E4EBE8` | Cool registry ground (not warm cream) |
-| sheet | `#FCFDFC` | Form / notice sheet |
-| ink | `#1A2421` | Primary text |
-| quiet | `#5B6A64` | Secondary text |
-| stamp | `#0D5C4D` | Official actions / links |
-| seal | `#9B3D2E` | Human Decision only |
-| rule | `#B7C5BF` | Dividers / form lines |
-| ok | `#1F6B5C` | Eligible / success |
+Short sentences. Everyday words.
 
-## Type
+Citizen: Sign up → fill in your profile → see what matches → prepare an application → approve the packet → alerts.
 
-- **Newsreader** — brand, notice bodies, page titles (gazette voice)
-- **Figtree** — UI chrome, forms, tables
+Staff: Sign in → see sources and drafts waiting → approve a change only if the quotes match → release or hold bad news.
 
-## Layout
+Admin: Sign in → the staff work, plus sources and the sending switch. The activity log is there too.
 
-Left-aligned registry, not a centered marketing site. Masthead carries the brand. Programme lists read as ledgers. Curator is a split folio (notice | draft). Timeline is a docket spine.
+## Three human stops, visible in the product
 
-## Principles
+1. **Rule change.** Staff open a draft. The quote check is shown. Approve and Reject are the actions. The model does not approve.
+2. **Bad news.** Staff see a name and the eligibility change, not the private profile. Release or Hold are the actions.
+3. **Packet.** The applicant sees the exact details and approves them before anything is sent.
 
-1. Paperwork, not product marketing.
-2. One memorable device: the masthead stamp bar.
-3. Seal colour only for human decisions.
-4. No identical rounded card grids, no ALL-CAPS eyebrows, no purple gradients.
+These three stops are listed on sign-in and home, and the current stop is marked on the screen where the person acts.
+
+## Sign-in
+
+An empty email field, an empty password field, and a Sign in button. Sign up is on the same page. No filled-in passwords. No "sign in as this person" buttons.
+
+## Roles
+
+Citizen, staff, and admin are stored on the account. There is no Citizen view / Staff view switch. Navigation follows the role. The server refuses a page the role cannot open.
+
+## Catalogue
+
+Programme names and official URLs. A quote appears only when it was on a page RightPath fetched. If the page cannot be read, the screen says the source is unreachable. Do not label the list as a demo sample.
+
+## Alerts
+
+Useful sentences, not status codes. Programme, what changed, what it means, the quote, whether a person released it, the date, and one next step. Separate "you may now qualify" from "you may no longer qualify". Unread count in the navigation. Opening an alert marks it read. The empty state says alerts appear when a watched notice changes the result.
+
+## What the model does not do
+
+It does not decide eligibility. It does not send a packet. It does not release bad news. Those stay with the rule engine, the quote check, the approval gate, and a person.

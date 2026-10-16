@@ -25,7 +25,13 @@ class Settings(BaseSettings):
     n8n_base_url: str = ""
     n8n_shared_secret: str = "dev-shared-secret"
     base_url: str = "http://127.0.0.1:8000"
-    admin_password: str = "demo-admin"
+    admin_email: str = "admin@rightpath.local"
+    admin_password: str = "change-me-admin"
+    staff_one_email: str = "staff.one@rightpath.local"
+    staff_one_password: str = "change-me-staff-1"
+    staff_two_email: str = "staff.two@rightpath.local"
+    staff_two_password: str = "change-me-staff-2"
+    fetch_remote: bool = True
 
     port: int = 8000
     database_url: str = "sqlite:///./data/rightpath.db"

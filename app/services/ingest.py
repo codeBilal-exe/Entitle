@@ -21,7 +21,7 @@ AGE_BAND_RE = re.compile(
 def draft_from_notice_deterministic(
     live_rules: dict[str, Any], notice_text: str
 ) -> dict[str, Any]:
-    """Update known DEMO conditions from verbatim phrases in the notice."""
+    """Update an existing condition only when the new phrase is in the notice."""
     draft = deepcopy(live_rules)
     draft["version"] = int(live_rules.get("version", 1)) + 1
 

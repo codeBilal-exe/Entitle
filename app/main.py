@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -14,46 +15,65 @@ from app.api_internal import router as internal_router
 from app.config import get_settings
 from app.db import SessionLocal, get_db, init_db
 from app.engine.approval_gate import ApprovalGate, ApplicationState
-from app.engine.rule_engine import RuleEngine, Status
+from app.engine.rule_engine import RuleEngine
 from app.models import (
     Application,
-    DemoNotice,
     Event,
     IngestionJob,
     Notification,
     Profile,
     Program,
-    ProgramVersion,
+    Source,
     User,
 )
-from app.security import mount_session, verify_password
-from app.seed import seed_if_empty
+from app.security import hash_password, mount_session, verify_password
+from app.seed import ensure_catalogue, ensure_staff, seed_if_empty
 from app.services import pulse
-from app.services.demo_reset import reset_demo
-from app.services.explainer import explain_result
-from app.services.goldset import run_gold_set
+from app.services.explainer import short_reason
+from app.services import plain
 from app.services.manual_pack import build_manual_pack
-from app.services.questions import QuestionEngine
 from app.services.runtime import is_send_enabled, set_send_enabled
 from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.timeline import log_event
 
 settings = get_settings()
-app = FastAPI(title="RightPath", version="0.3.0")
+app = FastAPI(title="RightPath", version="0.5.0")
 mount_session(app, settings.secret_key)
 app.include_router(internal_router)
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+templates.env.globals.update(
+    attr_label=plain.attr_label,
+    country_label=plain.country_label,
+    describe_diff_lines=plain.describe_diff_lines,
+    doc_label=plain.doc_label,
+    domain_label=plain.domain_label,
+    eligibility_label=plain.eligibility_label,
+    kind_label=plain.kind_label,
+    next_step_label=plain.next_step_label,
+    notify_status_label=plain.notify_status_label,
+    outcome_label=plain.outcome_label,
+    payload_rows=plain.payload_rows,
+    profile_rows=plain.profile_rows,
+    rule_phrase=plain.rule_phrase,
+    source_status_label=plain.source_status_label,
+    stage_label=plain.stage_label,
+    state_label=plain.state_label,
+    status_shift=plain.status_shift,
+)
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 rule_engine = RuleEngine()
-question_engine = QuestionEngine(rule_engine)
 approval_gate = ApprovalGate()
 
+STAFF_ROLES = {"admin", "staff"}
 
-def render(request: Request, name: str, db: Session, **extra: Any):
-    return templates.TemplateResponse(request, name, base_ctx(request, db, **extra))
+
+def render(request: Request, name: str, db: Session, status_code: int = 200, **extra: Any):
+    return templates.TemplateResponse(
+        request, name, base_ctx(request, db, **extra), status_code=status_code
+    )
 
 
 @app.on_event("startup")
@@ -63,7 +83,8 @@ def on_startup() -> None:
     db = SessionLocal()
     try:
         seed_if_empty(db)
-        # Baseline hashes so the first watcher run does not false-trigger.
+        ensure_staff(db)
+        ensure_catalogue(db)
         pulse.check_sources(db, auto_ingest=False)
     finally:
         db.close()
@@ -82,24 +103,67 @@ def current_user(request: Request, db: Session) -> User | None:
     return db.get(User, user_id)
 
 
-def require_user(request: Request, db: Session) -> User:
-    user = current_user(request, db)
-    if not user:
-        raise RuntimeError("login_required")
-    return user
+def is_staff(user: User | None) -> bool:
+    return bool(user and user.role in STAFF_ROLES)
+
+
+def is_admin(user: User | None) -> bool:
+    return bool(user and user.role == "admin")
+
+
+def redirect_login(next_path: str = "/") -> RedirectResponse:
+    return RedirectResponse(f"/login?next={quote(next_path, safe='')}", status_code=303)
+
+
+def safe_next(next_path: str) -> str:
+    if next_path.startswith("/") and not next_path.startswith("//"):
+        return next_path
+    return "/"
+
+
+def deny(request: Request, db: Session):
+    return render(request, "forbidden.html", db, status_code=403)
+
+
+def alert_visible(row: Notification) -> bool:
+    """Bad news stays hidden until a person releases it."""
+    if row.kind == "newly_not_eligible":
+        return row.status == "approved"
+    if row.kind in {"newly_eligible", "deadline_reminder"}:
+        return row.status in {"queued", "approved"}
+    return False
+
+
+def unread_for(db: Session, user: User | None) -> int:
+    if not user or user.role != "citizen":
+        return 0
+    rows = (
+        db.query(Notification)
+        .filter(Notification.user_id == user.id, Notification.read_at.is_(None))
+        .all()
+    )
+    return sum(1 for row in rows if alert_visible(row))
 
 
 def load_rules(db: Session, program: Program) -> dict[str, Any]:
     return pulse.load_rules(db, program)
 
 
-def all_live_rules(db: Session) -> list[dict[str, Any]]:
-    programs = db.query(Program).filter(Program.status == "active").all()
-    return [load_rules(db, p) for p in programs]
-
-
 def profile_attrs(profile: Profile | None) -> dict[str, Any]:
     return pulse.profile_attrs(profile)
+
+
+def own_profile(db: Session, user: User) -> Profile | None:
+    return db.query(Profile).filter(Profile.user_id == user.id).first()
+
+
+def checked_match(rules: dict[str, Any], source: Source | None, evaluation) -> str:
+    """Do not call someone eligible when no quoted rule has been approved."""
+    if source is not None and source.status == "unreachable":
+        return "unreachable"
+    if not (rules.get("conditions") or []):
+        return "unchecked"
+    return evaluation.status.value
 
 
 def base_ctx(request: Request, db: Session, **extra: Any) -> dict[str, Any]:
@@ -107,15 +171,20 @@ def base_ctx(request: Request, db: Session, **extra: Any) -> dict[str, Any]:
     return {
         "request": request,
         "user": user,
+        "is_staff": is_staff(user),
+        "is_admin": is_admin(user),
+        "unread_count": unread_for(db, user),
         "replay_mode": settings.replay_mode,
         **extra,
     }
 
 
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request, db: Session = Depends(get_db)):
-    programs = db.query(Program).filter(Program.status == "active").all()
-    return render(request, "home.html", db, programs=programs)
+def _optional_bool(raw: str) -> bool | None:
+    if raw == "yes":
+        return True
+    if raw == "no":
+        return False
+    return None
 
 
 @app.get("/health")
@@ -123,10 +192,121 @@ def health():
     return {"status": "ok", "service": "rightpath-core"}
 
 
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return redirect_login("/")
+    programs = (
+        db.query(Program)
+        .filter(Program.status == "active")
+        .order_by(Program.domain, Program.title)
+        .all()
+    )
+    if user.role == "citizen":
+        profile = own_profile(db, user)
+        attrs = profile_attrs(profile)
+        rows = []
+        for program in programs:
+            rules = load_rules(db, program)
+            source = (
+                db.query(Source).filter(Source.program_id == program.id).order_by(Source.id).first()
+            )
+            evaluation = rule_engine.evaluate(rules, attrs)
+            rows.append(
+                {
+                    "program": program,
+                    "rules": rules,
+                    "source": source,
+                    "evaluation": evaluation,
+                    "match": checked_match(rules, source, evaluation),
+                    "why": short_reason(evaluation) if rules.get("conditions") else "",
+                }
+            )
+        rank = {"eligible": 0, "likely": 1, "unchecked": 2, "unreachable": 3, "not_eligible": 4}
+        rows.sort(key=lambda row: (rank.get(row["match"], 9), row["program"].title))
+        eligible_count = sum(1 for row in rows if row["match"] == "eligible")
+        return render(
+            request,
+            "home.html",
+            db,
+            program_rows=rows,
+            has_profile=profile is not None,
+            eligible_count=eligible_count,
+        )
+
+    sources = (
+        db.query(Source)
+        .filter(Source.program_id.in_([p.id for p in programs]))
+        .order_by(Source.label)
+        .all()
+    )
+    return render(
+        request,
+        "home.html",
+        db,
+        sources=sources,
+        titles={p.id: p.title for p in programs},
+        job_count=db.query(IngestionJob)
+        .filter(
+            IngestionJob.status == "pending_review",
+            IngestionJob.program_id.in_([p.id for p in programs]),
+        )
+        .count(),
+        review_count=db.query(Notification)
+        .filter(Notification.status.in_(["pending_review", "held"]))
+        .count(),
+        send_enabled=is_send_enabled(),
+    )
+
+
+@app.get("/programmes/{program_id}", response_class=HTMLResponse)
+def programme_detail(program_id: str, request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return redirect_login(f"/programmes/{program_id}")
+    program = db.get(Program, program_id)
+    if not program or program.status != "active":
+        return HTMLResponse("Programme not found", status_code=404)
+    rules = load_rules(db, program)
+    source = db.query(Source).filter(Source.program_id == program_id).order_by(Source.id).first()
+    excerpt = ""
+    if source and source.status == "ok" and source.last_text:
+        excerpt = source.last_text[:700]
+    quota = rules.get("quota_quote") or ""
+    if not (source and quota and quota in (source.last_text or "")):
+        quota = ""
+    evaluation = None
+    match = "unchecked"
+    if user.role == "citizen":
+        evaluation = rule_engine.evaluate(rules, profile_attrs(own_profile(db, user)))
+        match = checked_match(rules, source, evaluation)
+    return render(
+        request,
+        "programme.html",
+        db,
+        program=program,
+        rules=rules,
+        source=source,
+        excerpt=excerpt,
+        quota=quota,
+        match=match,
+    )
+
+
 @app.get("/login", response_class=HTMLResponse)
 def login_form(request: Request, db: Session = Depends(get_db)):
-    users = db.query(User).order_by(User.role, User.email).all()
-    return render(request, "login.html", db, users=users, error=None)
+    if current_user(request, db):
+        return RedirectResponse("/", status_code=303)
+    return render(
+        request,
+        "login.html",
+        db,
+        error=None,
+        signup_error=None,
+        deleted=bool(request.query_params.get("deleted")),
+        next_path=request.query_params.get("next") or "/",
+    )
 
 
 @app.post("/login")
@@ -134,25 +314,188 @@ def login(
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
+    next_path: str = Form("/"),
     db: Session = Depends(get_db),
 ):
-    user = db.query(User).filter(User.email == email).first()
+    user = db.query(User).filter(User.email == email.strip().lower()).first()
     if not user or not verify_password(password, user.password_hash):
-        users = db.query(User).order_by(User.role, User.email).all()
-        return templates.TemplateResponse(
+        return render(
             request,
             "login.html",
-            base_ctx(request, db, users=users, error="Invalid email or password."),
+            db,
             status_code=401,
+            error="That email or password is wrong.",
+            signup_error=None,
+            deleted=False,
+            next_path=next_path or "/",
         )
     request.session["user_id"] = user.id
     log_event(db, stage="login", detail=f"{user.email} signed in", case_id=str(user.id))
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse(safe_next(next_path), status_code=303)
+
+
+@app.post("/signup")
+def signup(
+    request: Request,
+    display_name: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    name = display_name.strip()
+    address = email.strip().lower()
+    error = None
+    if len(name) < 2:
+        error = "Enter your name."
+    elif "@" not in address or len(address) < 5:
+        error = "Enter a real email address."
+    elif len(password) < 8:
+        error = "Use at least 8 characters for the password."
+    elif db.query(User).filter(User.email == address).first():
+        error = "That email is already in use. Sign in instead."
+    if error:
+        return render(
+            request,
+            "login.html",
+            db,
+            status_code=400,
+            error=None,
+            signup_error=error,
+            deleted=False,
+            next_path="/",
+        )
+    user = User(
+        email=address,
+        display_name=name,
+        role="citizen",
+        password_hash=hash_password(password),
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    request.session["user_id"] = user.id
+    log_event(db, stage="signup", detail=f"{user.email} signed up", case_id=str(user.id))
+    return RedirectResponse("/profile", status_code=303)
 
 
 @app.post("/logout")
 def logout(request: Request):
     request.session.clear()
+    return RedirectResponse("/login", status_code=303)
+
+
+def profile_completeness(attrs: dict[str, Any], has_profile: bool) -> int:
+    score = 0
+    if attrs.get("age") is not None:
+        score += 25
+    if attrs.get("education_level"):
+        score += 25
+    for key in ("disability", "low_income", "unemployed", "needs_language_support"):
+        if key in attrs and attrs[key] is not None:
+            score += 10
+    if has_profile:
+        score += 10
+    return min(100, score)
+
+
+@app.get("/profile", response_class=HTMLResponse)
+def profile_form(request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return redirect_login("/profile")
+    if user.role != "citizen":
+        return deny(request, db)
+    profile = own_profile(db, user)
+    attrs = profile_attrs(profile)
+    has_profile = profile is not None
+    return render(
+        request,
+        "profile.html",
+        db,
+        attrs=attrs,
+        has_profile=has_profile,
+        consent_notifications=bool(profile.consent_notifications) if profile else False,
+        completeness=profile_completeness(attrs, has_profile),
+    )
+
+
+@app.get("/profiles/{user_id}", response_class=HTMLResponse)
+def profile_by_id(user_id: int, request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return redirect_login(f"/profiles/{user_id}")
+    owner = db.get(User, user_id)
+    if owner is None:
+        return HTMLResponse("Not found", status_code=404)
+    if user.id != owner.id or user.role != "citizen":
+        return deny(request, db)
+    return RedirectResponse("/profile", status_code=303)
+
+
+@app.post("/profile")
+def profile_save(
+    request: Request,
+    age: str = Form(...),
+    education_level: str = Form(...),
+    disability: str = Form(""),
+    low_income: str = Form(""),
+    unemployed: str = Form(""),
+    needs_language_support: str = Form(""),
+    consent_notifications: str | None = Form(None),
+    db: Session = Depends(get_db),
+):
+    user = current_user(request, db)
+    if not user:
+        return redirect_login("/profile")
+    if user.role != "citizen":
+        return deny(request, db)
+    existing = own_profile(db, user)
+    existing_attrs = profile_attrs(existing)
+    has_profile = existing is not None
+    consent_on = consent_notifications == "1"
+    if not age.isdigit() or not (0 <= int(age) <= 120):
+        return render(
+            request,
+            "profile.html",
+            db,
+            status_code=400,
+            attrs=existing_attrs,
+            has_profile=has_profile,
+            consent_notifications=consent_on,
+            completeness=profile_completeness(existing_attrs, has_profile),
+            error="Enter your age as a number.",
+        )
+    if education_level not in {"primary", "secondary", "tertiary"}:
+        return render(
+            request,
+            "profile.html",
+            db,
+            status_code=400,
+            attrs=existing_attrs,
+            has_profile=has_profile,
+            consent_notifications=consent_on,
+            completeness=profile_completeness(existing_attrs, has_profile),
+            error="Choose an education level.",
+        )
+    attrs: dict[str, Any] = {"age": int(age), "education_level": education_level}
+    for key, raw in (
+        ("disability", disability),
+        ("low_income", low_income),
+        ("unemployed", unemployed),
+        ("needs_language_support", needs_language_support),
+    ):
+        value = _optional_bool(raw)
+        if value is not None:
+            attrs[key] = value
+    profile = existing
+    if profile is None:
+        profile = Profile(user_id=user.id, attributes_json=json.dumps(attrs))
+        db.add(profile)
+    else:
+        profile.attributes_json = json.dumps(attrs)
+    profile.consent_notifications = consent_on
+    profile.consent_email = user.email if profile.consent_notifications else ""
+    db.commit()
     return RedirectResponse("/", status_code=303)
 
 
@@ -160,68 +503,27 @@ def logout(request: Request):
 def wizard(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
-        return RedirectResponse("/login", status_code=303)
-    profile = db.query(Profile).filter(Profile.user_id == user.id).first()
-    attrs = profile_attrs(profile)
-    question = question_engine.next_question(all_live_rules(db), attrs)
-    return render(request, "wizard.html", db, profile=attrs, question=question)
-
-
-@app.post("/wizard")
-def wizard_answer(
-    request: Request,
-    attr: str = Form(...),
-    value: str = Form(""),
-    prefer_not: str | None = Form(None),
-    db: Session = Depends(get_db),
-):
-    user = current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=303)
-    profile = db.query(Profile).filter(Profile.user_id == user.id).first()
-    if not profile:
-        profile = Profile(user_id=user.id, attributes_json="{}")
-        db.add(profile)
-        db.flush()
-    attrs = profile_attrs(profile)
-    if prefer_not:
-        attrs[attr] = None
-    elif value == "":
-        return RedirectResponse("/wizard", status_code=303)
-    else:
-        if value.lower() in {"true", "yes", "1"}:
-            attrs[attr] = True
-        elif value.lower() in {"false", "no", "0"}:
-            attrs[attr] = False
-        elif value.isdigit():
-            attrs[attr] = int(value)
-        else:
-            attrs[attr] = value
-    profile.attributes_json = json.dumps(attrs)
-    db.commit()
-    return RedirectResponse("/wizard", status_code=303)
+        return redirect_login("/wizard")
+    if user.role != "citizen":
+        return deny(request, db)
+    return RedirectResponse("/profile", status_code=303)
 
 
 @app.get("/results", response_class=HTMLResponse)
 def results(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
-        return RedirectResponse("/login", status_code=303)
-    profile = db.query(Profile).filter(Profile.user_id == user.id).first()
-    attrs = profile_attrs(profile)
-    rows = []
-    for program in db.query(Program).filter(Program.status == "active").all():
-        rules = load_rules(db, program)
-        evaluation = rule_engine.evaluate(rules, attrs)
-        rows.append({"program": program, "rules": rules, "evaluation": evaluation})
-    rows.sort(key=lambda r: {"eligible": 0, "likely": 1, "not_eligible": 2}[r["evaluation"].status.value])
-    for row in rows:
-        row["explanation"] = explain_result(row["program"].title, row["evaluation"])
-    return render(request, "results.html", db, rows=rows, profile=attrs, Status=Status)
+        return redirect_login("/results")
+    return RedirectResponse("/", status_code=303)
 
 
 @app.get("/timeline", response_class=HTMLResponse)
 def timeline(request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return redirect_login("/timeline")
+    if not is_admin(user):
+        return deny(request, db)
     events = db.query(Event).order_by(Event.at.desc()).limit(100).all()
     return render(request, "timeline.html", db, events=events)
 
@@ -229,12 +531,21 @@ def timeline(request: Request, db: Session = Depends(get_db)):
 @app.get("/privacy", response_class=HTMLResponse)
 def privacy(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
-    profile = None
-    apps = []
-    if user:
-        profile = db.query(Profile).filter(Profile.user_id == user.id).first()
-        apps = db.query(Application).filter(Application.user_id == user.id).all()
-    return render(request, "privacy.html", db, profile=profile, applications=apps)
+    if not user:
+        return redirect_login("/privacy")
+    if user.role != "citizen":
+        return deny(request, db)
+    profile = own_profile(db, user)
+    apps = db.query(Application).filter(Application.user_id == user.id).all()
+    titles = {p.id: p.title for p in db.query(Program).all()}
+    return render(
+        request,
+        "privacy.html",
+        db,
+        attrs=profile_attrs(profile),
+        applications=apps,
+        titles=titles,
+    )
 
 
 @app.post("/privacy/delete")
@@ -242,126 +553,100 @@ def privacy_delete(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
         return RedirectResponse("/login", status_code=303)
+    if user.role != "citizen":
+        return deny(request, db)
+    case_id = str(user.id)
     db.query(Application).filter(Application.user_id == user.id).delete()
     db.query(Notification).filter(Notification.user_id == user.id).delete()
-    profile = db.query(Profile).filter(Profile.user_id == user.id).first()
+    profile = own_profile(db, user)
     if profile:
-        profile.attributes_json = "{}"
-        profile.consent_notifications = False
-        profile.consent_email = ""
+        db.delete(profile)
     log_event(
         db,
         stage="privacy_delete",
         detail="User deleted stored profile and applications",
-        case_id=str(user.id),
+        case_id=case_id,
         human_decision=True,
     )
     db.commit()
-    return RedirectResponse("/privacy?deleted=1", status_code=303)
-
-
-@app.get("/demo/notices/{notice_id}", response_class=HTMLResponse)
-def demo_notice(notice_id: str, request: Request, db: Session = Depends(get_db)):
-    notice = db.get(DemoNotice, notice_id)
-    if not notice:
-        return HTMLResponse("Notice not found", status_code=404)
-    return render(request, "demo_notice.html", db, notice=notice)
+    request.session.clear()
+    return RedirectResponse("/login?deleted=1", status_code=303)
 
 
 @app.get("/curator", response_class=HTMLResponse)
 def curator_home(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
-    if not user or user.role not in {"curator", "admin"}:
-        return RedirectResponse("/login", status_code=303)
+    if not user:
+        return redirect_login("/curator")
+    if not is_staff(user):
+        return deny(request, db)
+    active = db.query(Program).filter(Program.status == "active").all()
+    active_ids = {p.id for p in active}
     jobs = (
         db.query(IngestionJob)
-        .filter(IngestionJob.status == "pending_review")
+        .filter(
+            IngestionJob.status == "pending_review",
+            IngestionJob.program_id.in_(active_ids),
+        )
         .order_by(IngestionJob.created_at.desc())
         .all()
     )
-    notice = db.get(DemoNotice, "inclusive-hiring")
     return render(
         request,
         "curator.html",
         db,
         jobs=jobs,
-        notice=notice,
-        goldset=run_gold_set(),
+        sources=db.query(Source).filter(Source.program_id.in_(active_ids)).order_by(Source.label).all(),
+        titles={p.id: p.title for p in active},
         send_enabled=is_send_enabled(),
     )
-
-
-@app.post("/curator/demo-notice")
-def update_demo_notice(
-    request: Request,
-    body: str = Form(...),
-    db: Session = Depends(get_db),
-):
-    user = current_user(request, db)
-    if not user or user.role not in {"curator", "admin"}:
-        return RedirectResponse("/login", status_code=303)
-    notice = db.get(DemoNotice, "inclusive-hiring")
-    if notice:
-        notice.body = body
-        db.commit()
-        log_event(
-            db,
-            stage="demo_notice_edit",
-            detail="DEMO source notice updated",
-            case_id="inclusive-hiring",
-            human_decision=True,
-        )
-    return RedirectResponse("/curator", status_code=303)
-
-
-@app.post("/curator/ingest-demo")
-def ingest_demo(request: Request, db: Session = Depends(get_db)):
-    user = current_user(request, db)
-    if not user or user.role not in {"curator", "admin"}:
-        return RedirectResponse("/login", status_code=303)
-
-    notice = db.get(DemoNotice, "inclusive-hiring")
-    if not notice:
-        return RedirectResponse("/curator", status_code=303)
-    job = pulse.create_ingest_job(
-        db, "demo_pk_work_01", notice.body, prefer_llm=True
-    )
-    return RedirectResponse(f"/curator/jobs/{job.id}", status_code=303)
 
 
 @app.post("/curator/check-now")
 def curator_check_now(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
-    if not user or user.role not in {"curator", "admin"}:
-        return RedirectResponse("/login", status_code=303)
+    if not user:
+        return redirect_login("/curator")
+    if not is_staff(user):
+        return deny(request, db)
     result = pulse.check_sources(db, auto_ingest=True)
     changed = [s for s in result.get("sources", []) if s.get("changed")]
     if changed and changed[0].get("ingestion_job_id"):
-        return RedirectResponse(
-            f"/curator/jobs/{changed[0]['ingestion_job_id']}", status_code=303
-        )
+        return RedirectResponse(f"/curator/jobs/{changed[0]['ingestion_job_id']}", status_code=303)
     return RedirectResponse("/curator?checked=1", status_code=303)
 
 
-@app.post("/curator/replay")
-def curator_replay(request: Request, db: Session = Depends(get_db)):
+@app.post("/curator/sources/{source_id}")
+def update_source(
+    source_id: int,
+    request: Request,
+    url: str = Form(...),
+    label: str = Form(""),
+    db: Session = Depends(get_db),
+):
     user = current_user(request, db)
-    if not user or user.role not in {"curator", "admin"}:
-        return RedirectResponse("/login", status_code=303)
-    result = pulse.run_replay_tighten(db)
-    job_id = result.get("ingestion_job_id")
-    if job_id:
-        return RedirectResponse(f"/curator/jobs/{job_id}", status_code=303)
+    if not user:
+        return redirect_login("/curator")
+    if not is_admin(user):
+        return deny(request, db)
+    source = db.get(Source, source_id)
+    cleaned = url.strip()
+    if source and cleaned.startswith("https://"):
+        source.url = cleaned
+        if label.strip():
+            source.label = label.strip()
+        source.status = "not_checked"
+        source.last_hash = ""
+        source.last_text = ""
+        log_event(
+            db,
+            stage="source_updated",
+            detail=f"{user.email} set source {source.id} to {cleaned}",
+            case_id=source.program_id,
+            human_decision=True,
+        )
+        db.commit()
     return RedirectResponse("/curator", status_code=303)
-
-
-@app.post("/curator/reset-demo")
-def curator_reset_demo(request: Request, db: Session = Depends(get_db)):
-    user = current_user(request, db)
-    if not user or user.role not in {"curator", "admin"}:
-        return RedirectResponse("/login", status_code=303)
-    reset_demo(db)
-    return RedirectResponse("/curator?reset=1", status_code=303)
 
 
 @app.post("/curator/kill-switch")
@@ -371,8 +656,10 @@ def curator_kill_switch(
     db: Session = Depends(get_db),
 ):
     user = current_user(request, db)
-    if not user or user.role not in {"curator", "admin"}:
-        return RedirectResponse("/login", status_code=303)
+    if not user:
+        return redirect_login("/curator")
+    if not is_admin(user):
+        return deny(request, db)
     set_send_enabled(enabled == "1")
     log_event(
         db,
@@ -387,16 +674,20 @@ def curator_kill_switch(
 @app.get("/curator/jobs/{job_id}", response_class=HTMLResponse)
 def curator_job(job_id: int, request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
-    if not user or user.role not in {"curator", "admin"}:
-        return RedirectResponse("/login", status_code=303)
+    if not user:
+        return redirect_login(f"/curator/jobs/{job_id}")
+    if not is_staff(user):
+        return deny(request, db)
     job = db.get(IngestionJob, job_id)
     if not job:
         return HTMLResponse("Job not found", status_code=404)
+    program = db.get(Program, job.program_id)
     return render(
         request,
         "curator_job.html",
         db,
         job=job,
+        program=program,
         draft=json.loads(job.draft_json),
         quote_check=json.loads(job.quote_check_json),
         diff=json.loads(job.diff_json),
@@ -406,8 +697,10 @@ def curator_job(job_id: int, request: Request, db: Session = Depends(get_db)):
 @app.post("/curator/jobs/{job_id}/approve")
 def approve_job(job_id: int, request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
-    if not user or user.role not in {"curator", "admin"}:
-        return RedirectResponse("/login", status_code=303)
+    if not user:
+        return redirect_login(f"/curator/jobs/{job_id}")
+    if not is_staff(user):
+        return deny(request, db)
     result = pulse.approve_and_fan_out(db, job_id, reviewed_by=user.email)
     if not result.get("ok"):
         if result.get("error") == "quote_gate_failed":
@@ -416,21 +709,58 @@ def approve_job(job_id: int, request: Request, db: Session = Depends(get_db)):
     return RedirectResponse("/navigator", status_code=303)
 
 
+@app.post("/curator/jobs/{job_id}/reject")
+def reject_job(job_id: int, request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return redirect_login(f"/curator/jobs/{job_id}")
+    if not is_staff(user):
+        return deny(request, db)
+    job = db.get(IngestionJob, job_id)
+    if job and job.status == "pending_review":
+        job.status = "rejected"
+        job.reviewed_by = user.email
+        log_event(
+            db,
+            stage="rule_rejected",
+            detail=f"{user.email} rejected draft {job.id}",
+            case_id=job.program_id,
+            human_decision=True,
+        )
+        db.commit()
+    return RedirectResponse("/curator", status_code=303)
+
+
 @app.get("/navigator", response_class=HTMLResponse)
 def navigator_queue(request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
-    if not user or user.role not in {"navigator", "admin", "curator"}:
-        return RedirectResponse("/login", status_code=303)
+    if not user:
+        return redirect_login("/navigator")
+    if not is_staff(user):
+        return deny(request, db)
     items = (
         db.query(Notification)
-        .filter(Notification.status == "pending_review")
+        .filter(Notification.status.in_(["pending_review", "held"]))
         .order_by(Notification.created_at.desc())
         .all()
     )
+    titles = {p.id: p.title for p in db.query(Program).all()}
     parsed = []
     for item in items:
-        parsed.append({"row": item, "detail": json.loads(item.detail_json or "{}")})
-    return render(request, "navigator.html", db, items=parsed)
+        detail = json.loads(item.detail_json or "{}")
+        parsed.append(
+            {
+                "row": item,
+                "detail": {
+                    "display_name": detail.get("display_name") or "A person",
+                    "before": detail.get("before"),
+                    "after": detail.get("after"),
+                    "meaning": detail.get("meaning") or "",
+                    "quote": detail.get("quote") or "",
+                },
+            }
+        )
+    return render(request, "navigator.html", db, items=parsed, titles=titles)
 
 
 @app.post("/navigator/{notification_id}/release")
@@ -440,12 +770,17 @@ def navigator_release(
     db: Session = Depends(get_db),
 ):
     user = current_user(request, db)
-    if not user or user.role not in {"navigator", "admin", "curator"}:
-        return RedirectResponse("/login", status_code=303)
+    if not user:
+        return redirect_login("/navigator")
+    if not is_staff(user):
+        return deny(request, db)
     item = db.get(Notification, notification_id)
-    if item:
+    if item and item.status in {"pending_review", "held"}:
         item.status = "approved"
         item.reviewed_by = user.email
+        detail = json.loads(item.detail_json or "{}")
+        detail["released_by"] = user.email
+        item.detail_json = json.dumps(detail)
         log_event(
             db,
             stage="navigator_release",
@@ -457,16 +792,46 @@ def navigator_release(
     return RedirectResponse("/navigator", status_code=303)
 
 
+@app.post("/navigator/{notification_id}/hold")
+def navigator_hold(
+    notification_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    user = current_user(request, db)
+    if not user:
+        return redirect_login("/navigator")
+    if not is_staff(user):
+        return deny(request, db)
+    item = db.get(Notification, notification_id)
+    if item and item.status == "pending_review":
+        item.status = "held"
+        item.reviewed_by = user.email
+        log_event(
+            db,
+            stage="navigator_hold",
+            detail=f"{user.email} held notification {item.id}",
+            case_id=str(item.user_id),
+            human_decision=True,
+        )
+        db.commit()
+    return RedirectResponse("/navigator", status_code=303)
+
+
 @app.get("/apply/{program_id}", response_class=HTMLResponse)
 def apply_form(program_id: str, request: Request, db: Session = Depends(get_db)):
     user = current_user(request, db)
     if not user:
-        return RedirectResponse("/login", status_code=303)
+        return redirect_login(f"/apply/{program_id}")
+    if user.role != "citizen":
+        return deny(request, db)
     program = db.get(Program, program_id)
-    if not program:
+    if not program or program.status != "active":
         return HTMLResponse("Programme not found", status_code=404)
     rules = load_rules(db, program)
-    profile = db.query(Profile).filter(Profile.user_id == user.id).first()
+    profile = own_profile(db, user)
+    if profile is None:
+        return RedirectResponse("/profile", status_code=303)
     return render(
         request,
         "apply.html",
@@ -489,14 +854,17 @@ def apply_submit(
 ):
     user = current_user(request, db)
     if not user:
-        return RedirectResponse("/login", status_code=303)
+        return redirect_login(f"/apply/{program_id}")
+    if user.role != "citizen":
+        return deny(request, db)
     program = db.get(Program, program_id)
-    if not program:
+    if not program or program.status != "active":
         return HTMLResponse("Programme not found", status_code=404)
     rules = load_rules(db, program)
+    destination = rules.get("official_url") or rules.get("apply_email") or ""
     payload = {
         "program_id": program_id,
-        "to": rules.get("apply_email", "intake@example.org"),
+        "to": destination,
         "fields": {
             "full_name": full_name,
             "contact_email": contact_email,
@@ -508,6 +876,8 @@ def apply_submit(
     idem = f"{user.id}:{program_id}"
     existing = db.query(Application).filter(Application.idempotency_key == idem).first()
     if existing:
+        if existing.user_id != user.id:
+            return deny(request, db)
         return RedirectResponse(f"/applications/{existing.id}", status_code=303)
 
     app_id = f"app-{user.id}-{program_id}"
@@ -524,29 +894,42 @@ def apply_submit(
     return RedirectResponse(f"/applications/{app_id}", status_code=303)
 
 
+def _own_application(request: Request, db: Session, application_id: str):
+    user = current_user(request, db)
+    if not user:
+        return None, redirect_login(f"/applications/{application_id}")
+    application = db.get(Application, application_id)
+    if not application:
+        return None, HTMLResponse("Not found", status_code=404)
+    if application.user_id != user.id or user.role != "citizen":
+        return None, deny(request, db)
+    return application, None
+
+
 @app.get("/applications/{application_id}", response_class=HTMLResponse)
 def application_detail(
     application_id: str, request: Request, db: Session = Depends(get_db)
 ):
-    user = current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=303)
-    application = db.get(Application, application_id)
-    if not application or application.user_id != user.id:
-        return HTMLResponse("Not found", status_code=404)
+    application, blocked = _own_application(request, db, application_id)
+    if blocked:
+        return blocked
     payload = json.loads(application.payload_json)
+    program = db.get(Program, application.program_id)
     pack_name = None
     pack_path = Path("data/manual_packs") / f"{application.id}.zip"
     if pack_path.exists():
         pack_name = pack_path.name
+    smtp_ready = bool(settings.mail_host and settings.mail_user)
     return render(
         request,
         "application.html",
         db,
         application=application,
+        program=program,
         payload=payload,
         pack_name=pack_name,
         send_enabled=is_send_enabled(),
+        smtp_ready=smtp_ready,
     )
 
 
@@ -554,12 +937,9 @@ def application_detail(
 def application_approve(
     application_id: str, request: Request, db: Session = Depends(get_db)
 ):
-    user = current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=303)
-    application = db.get(Application, application_id)
-    if not application or application.user_id != user.id:
-        return HTMLResponse("Not found", status_code=404)
+    application, blocked = _own_application(request, db, application_id)
+    if blocked:
+        return blocked
     payload = json.loads(application.payload_json)
     state, digest = approval_gate.approve(application.state, payload)
     application.state = state
@@ -579,12 +959,9 @@ def application_approve(
 def application_send(
     application_id: str, request: Request, db: Session = Depends(get_db)
 ):
-    user = current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=303)
-    application = db.get(Application, application_id)
-    if not application or application.user_id != user.id:
-        return HTMLResponse("Not found", status_code=404)
+    application, blocked = _own_application(request, db, application_id)
+    if blocked:
+        return blocked
     payload = json.loads(application.payload_json)
     decision = approval_gate.authorize_send(
         application_id=application.id,
@@ -610,7 +987,7 @@ def application_send(
         log_event(
             db,
             stage="send_blocked",
-            detail=f"Kill switch on — manual pack {pack.name}",
+            detail=f"Sending is off — manual pack {pack.name}",
             case_id=application_id,
             status="blocked",
             human_decision=True,
@@ -667,28 +1044,80 @@ def download_manual_pack(
 ):
     from fastapi.responses import FileResponse
 
-    user = current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=303)
-    application = db.get(Application, application_id)
-    if not application or application.user_id != user.id:
-        return HTMLResponse("Not found", status_code=404)
+    application, blocked = _own_application(request, db, application_id)
+    if blocked:
+        return blocked
     path = Path("data/manual_packs") / f"{application_id}.zip"
     if not path.exists():
         return HTMLResponse("No manual pack for this application", status_code=404)
     return FileResponse(path, filename=path.name, media_type="application/zip")
 
 
-@app.get("/notifications", response_class=HTMLResponse)
-def my_notifications(request: Request, db: Session = Depends(get_db)):
-    user = current_user(request, db)
-    if not user:
-        return RedirectResponse("/login", status_code=303)
+def _alert_rows(db: Session, user: User) -> list[dict[str, Any]]:
     items = (
         db.query(Notification)
         .filter(Notification.user_id == user.id)
         .order_by(Notification.created_at.desc())
         .all()
     )
-    parsed = [{"row": i, "detail": json.loads(i.detail_json or "{}")} for i in items]
-    return render(request, "notifications.html", db, items=parsed)
+    titles = {p.id: p.title for p in db.query(Program).all()}
+    parsed = []
+    for item in items:
+        if not alert_visible(item):
+            continue
+        detail = json.loads(item.detail_json or "{}")
+        parsed.append({"row": item, "detail": detail, "title": titles.get(item.program_id, "A programme")})
+    return parsed
+
+
+@app.get("/alerts", response_class=HTMLResponse)
+@app.get("/notifications", response_class=HTMLResponse)
+def my_alerts(request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return redirect_login("/alerts")
+    if user.role != "citizen":
+        return deny(request, db)
+    items = _alert_rows(db, user)
+    gained = [item for item in items if item["row"].kind == "newly_eligible"]
+    lost = [item for item in items if item["row"].kind == "newly_not_eligible"]
+    deadlines = [item for item in items if item["row"].kind == "deadline_reminder"]
+
+    def unread_count(rows: list) -> int:
+        return sum(1 for item in rows if item["row"].read_at is None)
+
+    return render(
+        request,
+        "notifications.html",
+        db,
+        gained=gained,
+        lost=lost,
+        deadlines=deadlines,
+        gained_unread=unread_count(gained),
+        lost_unread=unread_count(lost),
+        deadline_unread=unread_count(deadlines),
+    )
+
+
+@app.get("/alerts/{notification_id}", response_class=HTMLResponse)
+def alert_detail(notification_id: int, request: Request, db: Session = Depends(get_db)):
+    user = current_user(request, db)
+    if not user:
+        return redirect_login(f"/alerts/{notification_id}")
+    item = db.get(Notification, notification_id)
+    if not item:
+        return HTMLResponse("Not found", status_code=404)
+    if item.user_id != user.id or user.role != "citizen" or not alert_visible(item):
+        return deny(request, db)
+    if item.read_at is None:
+        item.read_at = __import__("datetime").datetime.utcnow()
+        db.commit()
+    program = db.get(Program, item.program_id)
+    return render(
+        request,
+        "alert.html",
+        db,
+        item=item,
+        detail=json.loads(item.detail_json or "{}"),
+        program=program,
+    )

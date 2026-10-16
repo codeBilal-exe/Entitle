@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% from "macros.html" import page_intro %}
-{% block title %}Apply — {{ program.title }}{% endblock %}
+{% block title %}Prepare application — {{ program.title }}{% endblock %}
 {% block content %}
-  {{ page_intro("Prepare application", program.title) }}
+  {{ page_intro("Prepare an application", program.title) }}
+  <p class="lede">This builds a packet. It is not sent until you approve the exact details on the next screen.</p>
   <section class="sheet">
     <form method="post" action="/apply/{{ program.id }}">
       <label class="label" for="full_name">Full name</label>
@@ -11,27 +12,29 @@
       <input id="contact_email" name="contact_email" type="email" required value="{{ user.email }}">
       <label class="label" for="age">Age</label>
       <input id="age" name="age" type="number" required value="{{ profile.age or '' }}">
-      <label class="label" for="education_level">Education level</label>
+      <label class="label" for="education_level">Education</label>
       <select id="education_level" name="education_level" required>
         {% for c in ["primary", "secondary", "tertiary"] %}
-          <option value="{{ c }}" {% if profile.education_level == c %}selected{% endif %}>{{ c }}</option>
+          <option value="{{ c }}" {% if profile.education_level == c %}selected{% endif %}>
+            {% if c == "primary" %}Primary school{% elif c == "secondary" %}Secondary school{% else %}University or college{% endif %}
+          </option>
         {% endfor %}
       </select>
       <div class="tip">
-        <strong>Document checklist (SAMPLE ONLY):</strong>
+        <strong>Documents this programme asks for (samples only):</strong>
         {% if rules.required_docs %}
           <ul>
             {% for doc in rules.required_docs %}
-              <li>{{ doc.replace('_', ' ') }}</li>
+              <li>{{ doc_label(doc) }}</li>
             {% endfor %}
           </ul>
         {% else %}
-          No documents listed for this programme.
+          No documents listed.
         {% endif %}
-        RightPath never uploads real identity files in this demo.
+        RightPath does not upload identity files. You approve the packet on the next screen.
       </div>
       <div class="actions">
-        <button class="btn" type="submit">Continue to consent</button>
+        <button class="btn" type="submit">Review the packet</button>
       </div>
     </form>
   </section>

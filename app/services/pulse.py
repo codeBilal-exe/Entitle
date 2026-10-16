@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import json
+import re
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.engine.case_impact import CaseImpact
 from app.engine.quote_gate import QuoteGate
 from app.models import (
-    DemoNotice,
     IngestionJob,
     Notification,
     Profile,
@@ -22,6 +25,7 @@ from app.models import (
     User,
 )
 from app.services.ingest import draft_rule_pack
+from app.services.plain import alert_copy, describe_diff_lines
 from app.services.timeline import log_event
 
 quote_gate = QuoteGate()
@@ -47,43 +51,91 @@ def profile_attrs(profile: Profile | None) -> dict[str, Any]:
     return json.loads(profile.attributes_json or "{}")
 
 
-def fetch_source_text(db: Session, source: Source) -> str:
-    if source.is_demo_controllable or source.url.startswith("/demo/notices/"):
-        notice_id = source.url.rstrip("/").split("/")[-1]
-        notice = db.get(DemoNotice, notice_id)
-        return notice.body if notice else ""
-    # External URLs: best-effort fetch for real watchers.
-    try:
-        import httpx
+def html_to_text(raw: str) -> str:
+    """Visible text from a fetched page. Tags and scripts are dropped."""
+    without_blocks = re.sub(r"(?is)<(script|style|noscript).*?>.*?</\1>", " ", raw or "")
+    without_tags = re.sub(r"(?s)<[^>]+>", " ", without_blocks)
+    text = html.unescape(without_tags)
+    return re.sub(r"\s+", " ", text).strip()
 
-        response = httpx.get(source.url, timeout=20.0, follow_redirects=True)
-        response.raise_for_status()
-        return response.text
-    except Exception as exc:  # noqa: BLE001
-        source.status = "unreachable"
-        log_event(
-            db,
-            stage="source_unreachable",
-            detail=f"{source.id}: {exc}",
-            case_id=source.program_id,
-            status="error",
+
+def _download(url: str) -> tuple[str, str]:
+    """Return (status, text). status is ok or unreachable. Does not touch the database."""
+    import httpx
+
+    try:
+        response = httpx.get(
+            url,
+            timeout=8.0,
+            follow_redirects=True,
+            headers={"User-Agent": "RightPath/0.5 (public notice watcher)"},
         )
-        return ""
+        response.raise_for_status()
+        text = html_to_text(response.text)
+        if not text:
+            return "unreachable", ""
+        return "ok", text[:50000]
+    except Exception:
+        return "unreachable", ""
 
 
 def check_sources(db: Session, *, auto_ingest: bool = True) -> dict[str, Any]:
-    """Compare content hashes. Optionally create ingest jobs for changed sources."""
+    """Re-read official pages. A text change becomes a draft that waits for a person."""
+    sources = db.query(Source).order_by(Source.id).all()
+    settings = get_settings()
+    downloaded: dict[int, tuple[str, str]] = {}
+    if settings.fetch_remote and sources:
+        targets = [(source.id, source.url) for source in sources]
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            pairs = list(pool.map(lambda item: (item[0], _download(item[1])), targets))
+        downloaded = {source_id: payload for source_id, payload in pairs}
+
     results = []
-    sources = db.query(Source).all()
     for source in sources:
-        text = fetch_source_text(db, source)
+        if not settings.fetch_remote:
+            results.append(
+                {
+                    "source_id": source.id,
+                    "program_id": source.program_id,
+                    "hash": source.last_hash,
+                    "changed": False,
+                    "first_seen": not source.last_hash,
+                    "status": source.status or "not_checked",
+                    "skipped": True,
+                }
+            )
+            continue
+
+        status, text = downloaded.get(source.id, ("unreachable", ""))
+        source.last_checked = datetime.utcnow()
+        if status != "ok" or not text:
+            source.status = "unreachable"
+            source.last_text = ""
+            log_event(
+                db,
+                stage="source_unreachable",
+                detail=f"source {source.id} could not be read",
+                case_id=source.program_id,
+                status="error",
+            )
+            results.append(
+                {
+                    "source_id": source.id,
+                    "program_id": source.program_id,
+                    "hash": source.last_hash,
+                    "changed": False,
+                    "first_seen": False,
+                    "status": "unreachable",
+                }
+            )
+            continue
+
         digest = content_hash(text)
         changed = bool(source.last_hash) and source.last_hash != digest
         first_seen = not source.last_hash
-        source.last_checked = datetime.utcnow()
-        if text:
-            source.status = "ok"
         previous = source.last_hash
+        source.status = "ok"
+        source.last_text = text
         source.last_hash = digest
         entry: dict[str, Any] = {
             "source_id": source.id,
@@ -93,14 +145,13 @@ def check_sources(db: Session, *, auto_ingest: bool = True) -> dict[str, Any]:
             "first_seen": first_seen,
             "status": source.status,
         }
-        job = None
-        if changed and auto_ingest and text:
+        if changed and auto_ingest:
             job = create_ingest_job(db, source.program_id, text, source_id=source.id)
             entry["ingestion_job_id"] = job.id
             log_event(
                 db,
                 stage="source_changed",
-                detail=f"source {source.id} hash {previous[:8]}→{digest[:8]}",
+                detail=f"source {source.id} hash {str(previous)[:8]}→{digest[:8]}",
                 case_id=source.program_id,
             )
         else:
@@ -200,19 +251,41 @@ def approve_and_fan_out(
     )
 
     routed = []
-    applicants = db.query(User).filter(User.role == "applicant").all()
-    for applicant in applicants:
+    diff = json.loads(job.diff_json or "{}")
+    quote = _quote_from(draft, diff)
+    changed_line = describe_diff_lines(diff)[0]
+    citizens = db.query(User).filter(User.role == "citizen").all()
+    for applicant in citizens:
         profile = db.query(Profile).filter(Profile.user_id == applicant.id).first()
+        if profile is None:
+            log_event(
+                db,
+                stage="fanout_skip",
+                detail=f"{applicant.display_name}: no profile",
+                case_id=str(applicant.id),
+            )
+            continue
         attrs = profile_attrs(profile)
         change = case_impact.classify_case(str(applicant.id), old_rules, draft, attrs)
-        consent = bool(profile and profile.consent_notifications)
+        consent = bool(profile.consent_notifications)
         route = case_impact.fan_out_route(change, consent)
+        copy = alert_copy(
+            change.kind,
+            program.title,
+            diff_lines=[changed_line],
+            quote=quote,
+        )
         detail = {
             "before": change.before.value,
             "after": change.after.value,
             "display_name": applicant.display_name,
             "kind": change.kind,
             "route": route,
+            "what_changed": copy["what_changed"],
+            "meaning": copy["meaning"],
+            "quote": copy["quote"],
+            "next_step": copy["next_step"],
+            "released_by": "",
         }
         if route == "navigator_review":
             db.add(
@@ -227,7 +300,7 @@ def approve_and_fan_out(
             log_event(
                 db,
                 stage="fanout_navigator",
-                detail=f"{applicant.display_name} may no longer qualify — held for navigator",
+                detail=f"{applicant.display_name} may no longer qualify — held for a person",
                 case_id=str(applicant.id),
                 human_decision=True,
             )
@@ -244,7 +317,7 @@ def approve_and_fan_out(
             log_event(
                 db,
                 stage="fanout_notify",
-                detail=f"{applicant.display_name} newly eligible — notification queued",
+                detail=f"{applicant.display_name} may now qualify — alert queued",
                 case_id=str(applicant.id),
             )
         else:
@@ -274,27 +347,19 @@ def approve_and_fan_out(
     }
 
 
+def _quote_from(rules: dict[str, Any], diff: dict[str, Any]) -> str:
+    for change in diff.get("changed_conditions") or []:
+        after = change.get("after") or {}
+        quote = after.get("source_quote") or ""
+        if quote:
+            return quote
+    for condition in rules.get("conditions") or []:
+        quote = condition.get("source_quote") or ""
+        if quote:
+            return quote
+    return ""
+
+
 def run_replay_tighten(db: Session) -> dict[str, Any]:
-    """Labeled REPLAY helper: tighten DEMO notice to 18-35 and ingest."""
-    notice = db.get(DemoNotice, "inclusive-hiring")
-    if not notice:
-        return {"ok": False, "error": "demo_notice_missing"}
-    notice.body = (
-        "Inclusive Hiring Programme — Official Notice (DEMO SAMPLE)\n\n"
-        "This programme supports persons with disabilities aged between 18 and 35 years "
-        "who have completed secondary education or higher. Applications are accepted by email. "
-        "Required documents include an identity document and a disability certificate.\n\n"
-        "This page is a controllable DEMO source for RightPath. It is not a government website.\n"
-        "REPLAY: scripted tighten for offline demos."
-    )
-    db.commit()
-    log_event(
-        db,
-        stage="replay",
-        detail="REPLAY tighten applied to DEMO notice",
-        case_id="inclusive-hiring",
-    )
-    job = create_ingest_job(
-        db, "demo_pk_work_01", notice.body, prefer_llm=False
-    )
-    return {"ok": True, "mode": "REPLAY", "ingestion_job_id": job.id}
+    """The controllable demo notice is gone. Rule changes come from fetched pages."""
+    return {"ok": False, "error": "demo_replay_removed"}

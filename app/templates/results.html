@@ -1,30 +1,43 @@
 {% extends "base.html" %}
-{% from "macros.html" import page_intro, status_badge, demo_mark %}
+{% from "macros.html" import page_intro, status_badge %}
 {% block title %}Results — RightPath{% endblock %}
 {% block content %}
-  {{ page_intro("Results", "Eligibility is decided by published rules in code. Each reason shows a source quote.") }}
+  {{ page_intro("Why each programme matched", "Eligibility is decided from the published rules. Each line quotes the notice.") }}
 
   {% for row in rows %}
     {% set ev = row.evaluation %}
+    {% set rules = row.rules %}
     <article class="sheet {% if ev.status.value == 'not_eligible' %}sheet-seal{% endif %}">
       <div class="sheet-head">
-        <h2 class="sheet-title">{{ row.program.title }}</h2>
+        <h2 class="sheet-title">
+          <a href="/programmes/{{ row.program.id }}">{{ row.program.title }}</a>
+        </h2>
         <div>
           {{ status_badge(ev.status.value) }}
-          {% if row.program.is_demo_sample %}{{ demo_mark() }}{% endif %}
         </div>
       </div>
       <p>{{ row.explanation }}</p>
-      <ul>
-        {% for reason in ev.reasons %}
-          <li>{{ reason }}</li>
+      <ul class="checks">
+        {% for c in ev.condition_results %}
+          <li>
+            <span class="mark {% if c.outcome is sameas true %}mark-ok{% elif c.outcome is sameas false %}mark-bad{% endif %}">{{ outcome_label(c.outcome) }}</span>
+            {% if c.source_quote %}
+              <span class="quote">“{{ c.source_quote }}”</span>
+            {% else %}
+              {{ attr_label(c.attr) }}
+            {% endif %}
+          </li>
         {% endfor %}
       </ul>
-      {% for c in ev.condition_results %}
-        {% if c.source_quote %}
-          <p class="quote">“{{ c.source_quote }}”</p>
+      <p class="meta">
+        {% if rules.official_url %}
+          <a href="{{ rules.official_url }}" target="_blank" rel="noopener noreferrer">Official site</a>
+          ·
         {% endif %}
-      {% endfor %}
+        {% if rules.source_url %}
+          <a href="{{ rules.source_url }}">Mirrored notice</a>
+        {% endif %}
+      </p>
       {% if ev.status.value in ["eligible", "likely"] %}
         <div class="actions">
           <a class="btn btn-secondary" href="/apply/{{ row.program.id }}">Prepare application</a>

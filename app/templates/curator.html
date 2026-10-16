@@ -1,88 +1,75 @@
 {% extends "base.html" %}
-{% from "macros.html" import page_intro, flash_ok %}
-{% block title %}Curator — RightPath{% endblock %}
+{% from "macros.html" import flash_ok, human_stops, page_intro %}
+{% block title %}Rule changes — RightPath{% endblock %}
 {% block content %}
-  {{ page_intro("Curator desk", "AI may draft. Quote checks are code. Nothing goes live without your approval.") }}
+  {{ page_intro("Rule changes", "A draft does not go live until a person approves it. The quote check is code. The model does not decide.") }}
+  {{ human_stops("rule") }}
   {% if request.query_params.get('checked') %}
-    {{ flash_ok("Source check finished. No new pending draft from a hash change.") }}
-  {% endif %}
-  {% if request.query_params.get('reset') %}
-    {{ flash_ok("Demo reset complete. Notice and live rules restored to baseline.") }}
+    {{ flash_ok("Source check finished. If a page changed, its draft is in the list.") }}
   {% endif %}
 
-  <section class="sheet sheet-plain">
+  <section class="sheet">
     <div class="sheet-head">
-      <h2 class="sheet-title">Gold-set accuracy</h2>
-      <span class="mark mark-ok">{{ goldset.correct }}/{{ goldset.total }} · {{ goldset.percent }}%</span>
+      <h2 class="sheet-title">Check sources now</h2>
     </div>
-    <p>{{ goldset.summary }} ({{ goldset.method }} drafting, before curator edits).</p>
+    <p>The timer keeps reading these pages. You can also read them now. The app still works if n8n is not running.</p>
+    <form method="post" action="/curator/check-now">
+      <button class="btn" type="submit">Check sources now</button>
+    </form>
   </section>
 
-  <div class="split">
-    <section class="sheet">
-      <div class="sheet-head">
-        <h2 class="sheet-title">DEMO notice</h2>
-        <span class="sheet-meta">Edit to trigger a rule change</span>
-      </div>
-      <form method="post" action="/curator/demo-notice">
-        <p class="tip"><strong>Demo tip:</strong> change “18 and 45” to “18 and 35”, save, then check sources. Amina (40) moves to the navigator queue.</p>
-        <label class="label" for="body">Notice text</label>
-        <textarea id="body" name="body" required>{{ notice.body if notice else "" }}</textarea>
-        <div class="actions">
-          <button class="btn" type="submit">Save DEMO notice</button>
-        </div>
-      </form>
-    </section>
+  <h2>Drafts waiting</h2>
+  {% for job in jobs %}
+    <article class="sheet">
+      <h3 class="sheet-title">{{ titles.get(job.program_id, job.program_id) }}</h3>
+      <p class="meta">Waiting since {{ job.created_at }}</p>
+      <p><a href="/curator/jobs/{{ job.id }}">Review this draft</a></p>
+    </article>
+  {% else %}
+    <p class="empty">No drafts waiting. A draft appears when a watched page changes.</p>
+  {% endfor %}
 
-    <section class="sheet sheet-plain">
-      <div class="sheet-head">
-        <h2 class="sheet-title">Automation</h2>
-      </div>
-      <p class="sheet-meta">Same Pulse path used by the Core watcher and n8n hooks.</p>
-      <div class="actions" style="flex-direction:column;align-items:stretch">
-        <form method="post" action="/curator/check-now">
-          <button class="btn" type="submit" style="width:100%">Check sources now</button>
-        </form>
-        <form method="post" action="/curator/ingest-demo">
-          <button class="btn btn-secondary" type="submit" style="width:100%">Run ingest now</button>
-        </form>
-        <form method="post" action="/curator/replay">
-          <button class="btn btn-secondary" type="submit" style="width:100%">REPLAY tighten</button>
-        </form>
-        <form method="post" action="/curator/reset-demo" onsubmit="return confirm('Reset demo runtime data?');">
-          <button class="btn btn-secondary" type="submit" style="width:100%">Reset demo</button>
-        </form>
-        {% if send_enabled %}
-          <form method="post" action="/curator/kill-switch">
-            <input type="hidden" name="enabled" value="0">
-            <button class="btn btn-seal" type="submit" style="width:100%">Turn kill switch ON</button>
-          </form>
-        {% else %}
-          <form method="post" action="/curator/kill-switch">
-            <input type="hidden" name="enabled" value="1">
-            <button class="btn" type="submit" style="width:100%">Turn kill switch OFF (sending blocked)</button>
-          </form>
-        {% endif %}
-      </div>
-      <p class="meta" style="margin-top:1rem">
-        Sending is {% if send_enabled %}<strong>enabled</strong>{% else %}<strong>blocked</strong>{% endif %}.
-        <a href="/demo/notices/inclusive-hiring">Open public DEMO notice</a>
-      </p>
-    </section>
+  <h2>Watched sources</h2>
+  <div class="ledger-wrap">
+    <table class="ledger">
+      <thead>
+        <tr>
+          <th>Programme</th>
+          <th>Status</th>
+          <th>Official page</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for source in sources %}
+          <tr>
+            <td>{{ source.label or titles.get(source.program_id, source.program_id) }}</td>
+            <td>{{ source_status_label(source.status) }}</td>
+            <td>
+              <a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ source.url }}</a>
+              {% if is_admin %}
+                <form method="post" action="/curator/sources/{{ source.id }}" class="source-edit">
+                  <label class="label" for="url-{{ source.id }}">Update URL</label>
+                  <input id="url-{{ source.id }}" name="url" type="url" value="{{ source.url }}" required>
+                  <button class="btn btn-secondary" type="submit">Save source</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 
-  <h2>Pending review</h2>
-  {% for job in jobs %}
+  {% if is_admin %}
     <section class="sheet sheet-seal">
       <div class="sheet-head">
-        <h2 class="sheet-title">Job #{{ job.id }} · {{ job.program_id }}</h2>
-        <span class="sheet-meta">{{ job.created_at }}</span>
+        <h2 class="sheet-title">Sending</h2>
       </div>
-      <div class="actions">
-        <a class="btn" href="/curator/jobs/{{ job.id }}">Open review</a>
-      </div>
+      <p>Sending is {% if send_enabled %}on{% else %}off{% endif %}. Staff cannot change this.</p>
+      <form method="post" action="/curator/kill-switch">
+        <input type="hidden" name="enabled" value="{{ '0' if send_enabled else '1' }}">
+        <button class="btn btn-seal" type="submit">{% if send_enabled %}Turn sending off{% else %}Turn sending on{% endif %}</button>
+      </form>
     </section>
-  {% else %}
-    <p class="empty">No pending jobs.</p>
-  {% endfor %}
+  {% endif %}
 {% endblock %}

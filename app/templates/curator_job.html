@@ -1,38 +1,67 @@
 {% extends "base.html" %}
-{% from "macros.html" import page_intro, flash_ok, flash_err %}
-{% block title %}Review job {{ job.id }} — RightPath{% endblock %}
+{% from "macros.html" import flash_err, flash_ok, human_stops, page_intro %}
+{% block title %}Review draft — RightPath{% endblock %}
 {% block content %}
-  {{ page_intro("Review draft", "Compare the notice, the drafted rules, and the QuoteGate result before you approve.") }}
+  {{ page_intro("Review this draft", "A person approves this rule change. The model only drafted it. Every quote has to appear in the notice.") }}
+  {{ human_stops("rule") }}
   {% if request.query_params.get('error') == 'quote' %}
-    {{ flash_err("Cannot approve: QuoteGate failed. Fix the notice quotes or the draft.") }}
+    {{ flash_err("This draft cannot be approved. A quote is missing from the notice.") }}
   {% endif %}
+
+  <p class="meta">{{ program.title if program else job.program_id }}</p>
 
   <div class="split">
     <section class="sheet">
-      <div class="sheet-head"><h2 class="sheet-title">Notice text</h2></div>
+      <div class="sheet-head"><h2 class="sheet-title">Notice</h2></div>
       <div class="notice-body">{{ job.notice_text }}</div>
     </section>
     <section class="sheet sheet-plain">
-      <div class="sheet-head"><h2 class="sheet-title">Draft rules</h2></div>
-      <pre>{{ draft | tojson(indent=2) }}</pre>
+      <div class="sheet-head"><h2 class="sheet-title">Drafted rules</h2></div>
+      <table class="facts">
+        <tbody>
+          <tr>
+            <th scope="row">Deadline</th>
+            <td>{{ draft.deadline or "—" }}</td>
+          </tr>
+          <tr>
+            <th scope="row">Documents</th>
+            <td>
+              {% if draft.required_docs %}
+                {% for doc in draft.required_docs %}{{ doc_label(doc) }}{% if not loop.last %}, {% endif %}{% endfor %}
+              {% else %}
+                None listed
+              {% endif %}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <ul class="checks">
+        {% for c in draft.conditions or [] %}
+          <li>
+            <strong>{{ rule_phrase(c) }}</strong>
+            {% if c.source_quote %}<p class="quote">“{{ c.source_quote }}”</p>{% endif %}
+          </li>
+        {% else %}
+          <li>No conditions in this draft.</li>
+        {% endfor %}
+      </ul>
     </section>
   </div>
 
   <section class="sheet {% if quote_check.passed %}{% else %}sheet-seal{% endif %}">
     <div class="sheet-head">
-      <h2 class="sheet-title">QuoteGate</h2>
-      {% if quote_check.method %}<span class="sheet-meta">Drafted via {{ quote_check.method }}</span>{% endif %}
+      <h2 class="sheet-title">Quote check</h2>
+      {% if quote_check.method %}<span class="sheet-meta">Drafted with {{ quote_check.method }} rules</span>{% endif %}
     </div>
     {% if quote_check.passed %}
-      {{ flash_ok("All source quotes found verbatim in the notice.") }}
+      {{ flash_ok("Every source quote was found word for word in the notice.") }}
     {% else %}
-      {{ flash_err("Failed quotes: " ~ (quote_check.failed_ids | join(', '))) }}
+      {{ flash_err("Some quotes are not in the notice, so this draft stays blocked.") }}
     {% endif %}
-    <ul>
-      {% for item in quote_check.items %}
+    <ul class="checks">
+      {% for item in quote_check["items"] %}
         <li>
-          <strong>{{ item.id }}</strong>
-          {% if item.ok %}<span class="mark mark-ok">ok</span>{% else %}<span class="mark mark-bad">fail</span>{% endif %}
+          {% if item.ok %}<span class="mark mark-ok">In the notice</span>{% else %}<span class="mark mark-bad">Missing</span>{% endif %}
           <span class="quote">“{{ item.source_quote }}”</span>
         </li>
       {% endfor %}
@@ -40,16 +69,25 @@
   </section>
 
   <section class="sheet sheet-plain">
-    <div class="sheet-head"><h2 class="sheet-title">Diff vs live</h2></div>
-    <pre>{{ diff | tojson(indent=2) }}</pre>
+    <div class="sheet-head"><h2 class="sheet-title">What would change</h2></div>
+    <ul class="checks">
+      {% for line in describe_diff_lines(diff) %}
+        <li>{{ line }}</li>
+      {% endfor %}
+    </ul>
   </section>
 
-  <form method="post" action="/curator/jobs/{{ job.id }}/approve">
-    <div class="actions">
-      <button class="btn btn-seal" type="submit" {% if not quote_check.passed %}disabled{% endif %}>
-        Approve and fan out
+  <div class="actions">
+    <form method="post" action="/curator/jobs/{{ job.id }}/approve">
+      <button class="btn btn-seal" type="submit" {% if not quote_check.passed or job.status != "pending_review" %}disabled{% endif %}>
+        Approve this rule change
       </button>
-      <a class="btn btn-secondary" href="/curator">Back to curator</a>
-    </div>
-  </form>
+    </form>
+    {% if job.status == "pending_review" %}
+      <form method="post" action="/curator/jobs/{{ job.id }}/reject">
+        <button class="btn btn-secondary" type="submit">Reject</button>
+      </form>
+    {% endif %}
+    <a class="btn btn-secondary" href="/curator">Back</a>
+  </div>
 {% endblock %}
