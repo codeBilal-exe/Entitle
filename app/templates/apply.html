@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Apply — {{ program.title }}{% endblock %}
+{% block content %}
+  <h1>Prepare application</h1>
+  <p class="lede">{{ program.title }}</p>
+  <div class="panel">
+    <form method="post" action="/apply/{{ program.id }}">
+      <label class="label" for="full_name">Full name</label>
+      <input id="full_name" name="full_name" required value="{{ user.display_name }}">
+      <label class="label" for="contact_email">Contact email</label>
+      <input id="contact_email" name="contact_email" type="email" required value="{{ user.email }}">
+      <label class="label" for="age">Age</label>
+      <input id="age" name="age" type="number" required value="{{ profile.age or '' }}">
+      <label class="label" for="education_level">Education level</label>
+      <select id="education_level" name="education_level" required>
+        {% for c in ["primary", "secondary", "tertiary"] %}
+          <option value="{{ c }}" {% if profile.education_level == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+      <p class="meta">Required documents (SAMPLE ONLY in demo): {{ (rules.required_docs or []) | join(', ') }}</p>
+      <button class="btn" type="submit">Continue to consent</button>
+    </form>
+  </div>
+{% endblock %}

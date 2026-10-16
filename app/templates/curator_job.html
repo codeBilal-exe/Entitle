@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Review job {{ job.id }} — RightPath{% endblock %}
+{% block content %}
+  <h1>Review draft</h1>
+  {% if request.query_params.get('error') == 'quote' %}
+    <div class="flash-err">Cannot approve: QuoteGate failed. Fix the notice quotes or the draft.</div>
+  {% endif %}
+
+  <div class="split">
+    <div class="panel">
+      <p class="panel-title">Notice text</p>
+      <div class="notice-body">{{ job.notice_text }}</div>
+    </div>
+    <div class="panel">
+      <p class="panel-title">Draft rules</p>
+      <pre style="white-space:pre-wrap;font-size:0.85rem">{{ draft | tojson(indent=2) }}</pre>
+    </div>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">QuoteGate</p>
+    {% if quote_check.passed %}
+      <div class="flash-ok">All source quotes found verbatim in the notice.</div>
+    {% else %}
+      <div class="flash-err">Failed quotes: {{ quote_check.failed_ids | join(', ') }}</div>
+    {% endif %}
+    <ul>
+      {% for item in quote_check.items %}
+        <li>
+          {{ item.id }} —
+          {% if item.ok %}<span class="badge badge-eligible">ok</span>{% else %}<span class="badge badge-not">fail</span>{% endif %}
+          <span class="quote">“{{ item.source_quote }}”</span>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">Diff vs live</p>
+    <pre style="white-space:pre-wrap;font-size:0.85rem">{{ diff | tojson(indent=2) }}</pre>
+  </div>
+
+  <form method="post" action="/curator/jobs/{{ job.id }}/approve">
+    <button class="btn" type="submit" {% if not quote_check.passed %}disabled{% endif %}>
+      Approve and fan out
+    </button>
+    <a class="btn btn-secondary" href="/curator">Back</a>
+  </form>
+{% endblock %}

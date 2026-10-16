@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Results — RightPath{% endblock %}
+{% block content %}
+  <h1>Results</h1>
+  <p class="lede">Eligibility is decided by published rules in code. Each reason shows a source quote.</p>
+
+  {% for row in rows %}
+    {% set ev = row.evaluation %}
+    <div class="panel">
+      <p class="panel-title">
+        {{ row.program.title }}
+        {% if ev.status.value == "eligible" %}
+          <span class="badge badge-eligible">Eligible</span>
+        {% elif ev.status.value == "likely" %}
+          <span class="badge badge-likely">Likely</span>
+        {% else %}
+          <span class="badge badge-not">Not eligible</span>
+        {% endif %}
+        {% if row.program.is_demo_sample %}<span class="badge badge-demo">DEMO sample</span>{% endif %}
+      </p>
+      <ul>
+        {% for reason in ev.reasons %}
+          <li>{{ reason }}</li>
+        {% endfor %}
+      </ul>
+      {% for c in ev.condition_results %}
+        {% if c.source_quote %}
+          <p class="quote">“{{ c.source_quote }}”</p>
+        {% endif %}
+      {% endfor %}
+      {% if ev.status.value in ["eligible", "likely"] %}
+        <p><a class="btn btn-secondary" href="/apply/{{ row.program.id }}">Prepare application</a></p>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% endblock %}

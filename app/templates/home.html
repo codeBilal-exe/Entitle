@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}RightPath — Living entitlements{% endblock %}
+{% block content %}
+  <h1>Rules change. Your rights shouldn’t slip away.</h1>
+  <p class="lede">
+    RightPath watches official notices, drafts rule updates with source quotes,
+    and tells people when something changes for them — with a human approving
+    every consequential step.
+  </p>
+
+  <div class="panel">
+    <p class="panel-title">Start a demo</p>
+    <p class="meta">Use the seeded accounts. Password for all demo users: <code>demo1234</code></p>
+    <p>
+      <a class="btn" href="/login">Sign in</a>
+      <a class="btn btn-secondary" href="/demo/notices/inclusive-hiring">Open DEMO notice</a>
+      <a class="btn btn-secondary" href="/timeline">Live timeline</a>
+    </p>
+  </div>
+
+  <h2>Programmes in this build</h2>
+  {% for program in programs %}
+    <div class="panel">
+      <p class="panel-title">
+        {{ program.title }}
+        {% if program.is_demo_sample %}<span class="badge badge-demo">DEMO sample</span>{% endif %}
+      </p>
+      <p class="meta">{{ program.provider }} · {{ program.country }} · {{ program.domain }}</p>
+    </div>
+  {% endfor %}
+{% endblock %}

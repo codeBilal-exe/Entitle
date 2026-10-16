@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Consent — {{ application.id }}{% endblock %}
+{% block content %}
+  <h1>Approve exact packet</h1>
+  <p class="lede">Nothing is sent until you approve this exact payload. Changing it later cancels approval.</p>
+
+  {% if request.query_params.get('sent') %}
+    <div class="flash-ok">Packet marked sent. Check the timeline for delivery details.</div>
+  {% endif %}
+  {% if request.query_params.get('error') %}
+    <div class="flash-err">Send blocked: {{ request.query_params.get('error') }}</div>
+  {% endif %}
+
+  <div class="panel">
+    <p class="panel-title">State: <code>{{ application.state }}</code></p>
+    {% if application.approval_hash %}
+      <p class="meta">Approval hash: {{ application.approval_hash }}</p>
+    {% endif %}
+    <pre style="white-space:pre-wrap;font-size:0.85rem">{{ payload | tojson(indent=2) }}</pre>
+  </div>
+
+  {% if application.state != "sent" %}
+    {% if application.state != "approved" %}
+      <form method="post" action="/applications/{{ application.id }}/approve" style="display:inline">
+        <button class="btn" type="submit">I approve this exact packet</button>
+      </form>
+    {% else %}
+      <form method="post" action="/applications/{{ application.id }}/send" style="display:inline">
+        <button class="btn" type="submit">Send now</button>
+      </form>
+    {% endif %}
+  {% endif %}
+  <a class="btn btn-secondary" href="/timeline">Timeline</a>
+{% endblock %}

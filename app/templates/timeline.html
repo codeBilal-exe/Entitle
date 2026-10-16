@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Timeline — RightPath{% endblock %}
+{% block content %}
+  <h1>Live timeline</h1>
+  <p class="lede">Every automation step and human decision is recorded here.</p>
+  <ul class="timeline">
+    {% for event in events %}
+      <li class="{% if event.human_decision %}human{% endif %}">
+        <strong>{{ event.stage }}</strong>
+        {% if event.human_decision %}<span class="badge badge-human">Human Decision</span>{% endif %}
+        <div>{{ event.detail }}</div>
+        <div class="meta">{{ event.at }} · case {{ event.case_id or "—" }} · {{ event.status }}</div>
+      </li>
+    {% else %}
+      <li>No events yet.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

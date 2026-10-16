@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Privacy — RightPath{% endblock %}
+{% block content %}
+  <h1>Privacy centre</h1>
+  <p class="lede">Minimum data. You can delete what RightPath stores about you.</p>
+  {% if request.query_params.get('deleted') %}
+    <div class="flash-ok">Stored profile attributes and applications were cleared.</div>
+  {% endif %}
+
+  {% if not user %}
+    <p><a href="/login">Sign in</a> to manage your data.</p>
+  {% else %}
+    <div class="panel">
+      <p class="panel-title">Stored profile</p>
+      <pre>{{ profile.attributes_json if profile else "{}" }}</pre>
+      <p class="meta">Applications on file: {{ applications|length }}</p>
+      <form method="post" action="/privacy/delete" onsubmit="return confirm('Delete stored data for this demo account?');">
+        <button class="btn btn-danger" type="submit">Delete everything</button>
+      </form>
+    </div>
+  {% endif %}
+{% endblock %}

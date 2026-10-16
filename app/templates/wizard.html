@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Check entitlements — RightPath{% endblock %}
+{% block content %}
+  <h1>Check what may apply</h1>
+  <p class="lede">Answer only what is needed. Sensitive questions are optional.</p>
+
+  <div class="panel">
+    <p class="panel-title">Your answers so far</p>
+    {% if profile %}
+      <ul>
+        {% for k, v in profile.items() %}
+          <li><strong>{{ k }}</strong>: {% if v is none %}prefer not to say{% else %}{{ v }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="meta">No answers yet.</p>
+    {% endif %}
+  </div>
+
+  {% if question %}
+    <div class="panel">
+      <p class="panel-title">{{ question.label }}</p>
+      {% if question.sensitive %}
+        <p class="meta">Sensitive — answering may unlock about {{ question.unlocks }} programme(s). You may prefer not to say.</p>
+      {% endif %}
+      <form method="post" action="/wizard">
+        <input type="hidden" name="attr" value="{{ question.attr }}">
+        {% if question.type == "bool" %}
+          <label><input type="radio" name="value" value="true"> Yes</label><br>
+          <label><input type="radio" name="value" value="false"> No</label><br>
+        {% elif question.type == "choice" %}
+          <select name="value">
+            <option value="">Select…</option>
+            {% for c in question.choices %}
+              <option value="{{ c }}">{{ c }}</option>
+            {% endfor %}
+          </select>
+        {% elif question.type == "number" %}
+          <input type="number" name="value" min="0" max="120">
+        {% else %}
+          <input type="text" name="value">
+        {% endif %}
+        <p>
+          <button class="btn" type="submit">Save answer</button>
+          {% if question.sensitive %}
+            <button class="btn btn-secondary" type="submit" name="prefer_not" value="1">Prefer not to say</button>
+          {% endif %}
+        </p>
+      </form>
+    </div>
+  {% else %}
+    <div class="flash-ok">Enough answers collected for this demo set.</div>
+  {% endif %}
+
+  <p><a class="btn" href="/results">See results</a></p>
+{% endblock %}

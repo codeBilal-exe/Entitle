@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Sign in — RightPath{% endblock %}
+{% block content %}
+  <h1>Sign in</h1>
+  <p class="lede">Demo accounts only. Password: <code>demo1234</code></p>
+  {% if error %}<div class="flash-err">{{ error }}</div>{% endif %}
+
+  <div class="panel">
+    <form method="post" action="/login">
+      <label class="label" for="email">Email</label>
+      <select id="email" name="email">
+        {% for u in users %}
+          <option value="{{ u.email }}">{{ u.display_name }} — {{ u.role }} ({{ u.email }})</option>
+        {% endfor %}
+      </select>
+      <label class="label" for="password">Password</label>
+      <input id="password" name="password" type="password" value="demo1234" required>
+      <button class="btn" type="submit">Sign in</button>
+    </form>
+  </div>
+{% endblock %}

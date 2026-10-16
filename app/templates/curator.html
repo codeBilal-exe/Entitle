@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Curator — RightPath{% endblock %}
+{% block content %}
+  <h1>Curator desk</h1>
+  <p class="lede">AI may draft. Quote checks are code. Nothing goes live without your approval.</p>
+
+  <div class="split">
+    <div class="panel">
+      <p class="panel-title">DEMO notice (edit to trigger a rule change)</p>
+      <form method="post" action="/curator/demo-notice">
+        <textarea name="body" required>{{ notice.body if notice else "" }}</textarea>
+        <p class="meta">Hero tip: live rules start at 18–45. Change the notice to “18 and 35”, save, then run ingest — Amina (40) goes to the navigator queue; good-news cases stay consented.</p>
+        <button class="btn" type="submit">Save DEMO notice</button>
+      </form>
+    </div>
+    <div class="panel">
+      <p class="panel-title">Ingestion</p>
+      <p>Create a draft rule version from the DEMO notice, run QuoteGate, and open review.</p>
+      <form method="post" action="/curator/ingest-demo">
+        <button class="btn" type="submit">Run ingest now</button>
+      </form>
+      <p style="margin-top:1rem"><a href="/demo/notices/inclusive-hiring">View public DEMO notice</a></p>
+    </div>
+  </div>
+
+  <h2>Pending review</h2>
+  {% for job in jobs %}
+    <div class="panel">
+      <p class="panel-title">Job #{{ job.id }} · {{ job.program_id }}</p>
+      <p class="meta">{{ job.created_at }} · {{ job.status }}</p>
+      <a class="btn btn-secondary" href="/curator/jobs/{{ job.id }}">Open review</a>
+    </div>
+  {% else %}
+    <p class="meta">No pending jobs.</p>
+  {% endfor %}
+{% endblock %}
