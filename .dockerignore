@@ -24,9 +24,6 @@ build
 README.md
 design.md
 pytest.ini
-package.json
-package-lock.json
-neon.ts
 .vscode
 .idea
 .DS_Store

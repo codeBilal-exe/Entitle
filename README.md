@@ -65,16 +65,16 @@ Set in `.env`:
 
 ```bash
 docker build -t entitle .
-docker run --rm -p 8000:8000 --env-file .env -e PORT=8000 entitle
+docker run --rm -p 3000:3000 --env-file .env -e PORT=3000 entitle
 ```
 
-The container binds Uvicorn to `0.0.0.0:$PORT`, exposes port `8000`, and reports healthy at `/healthz` after it can reach the database. In Alternate Clouds, set the service's internal port and `PORT` to `8000`, set `BASE_URL` to the public HTTPS URL, then Rebuild and Deploy. A Git push alone does not publish the new image.
+The container binds Uvicorn to `0.0.0.0:$PORT`, exposes port `3000`, and reports healthy at `/healthz` after it can reach the database. In Alternate Clouds, set the service's internal port and `PORT` to `3000`, set `BASE_URL` to the public HTTPS URL, then Rebuild and Deploy. A Git push alone does not publish the new image.
 
 Set `SECRET_KEY` to a unique random value of at least 32 characters and set a strong `ADMIN_PASSWORD` before making the service public. The app fails startup with a clear log message if the HTTPS deployment still has a placeholder session key. The Verification Desk stays disabled when `ADMIN_PASSWORD` is empty. `GROQ_API_KEYS` is optional for startup; the app has a local drafting fallback when no Groq key is configured. Do not put `.env` or local database files in the image; `.dockerignore` excludes them.
 
 Use a managed PostgreSQL database for deployment and set `DATABASE_URL` to its application/pool URL. If the provider gives you a separate direct URL for schema changes, set `DATABASE_URL_UNPOOLED` too. The sample SQLite URL is only for local use: container files are temporary and do not survive a rebuild. SMTP and the app-to-n8n integration are optional. If you deploy n8n as a separate service, follow its own guide for `N8N_ENCRYPTION_KEY` and `WEBHOOK_URL`; those are not Entitle app variables.
 
-After deploy, check the container logs for `Application startup complete`, then open `https://<your-service>/healthz` and the home page. A non-200 health response means the app cannot reach its configured database; a connection error at startup usually means the database URL, network access, or schema connection settings need correction. For a 502, verify that the dashboard target port and `PORT` are both `8000`, then rebuild and deploy the latest image.
+After deploy, check the container logs for `Application startup complete`, then open `https://<your-service>/healthz` and the home page. A non-200 health response means the app cannot reach its configured database; a connection error at startup usually means the database URL, network access, or schema connection settings need correction. For a 502, verify that the dashboard target port and `PORT` are both `3000`, then rebuild and deploy the latest image.
 
 If the Alternate Clouds CLI reports `no active leases`, update it with `npm i -g @alternatefutures/acc` and retry the deployment. For a successful build followed by a startup crash, inspect the Logs tab for the first Python error; check required secrets and database connectivity before changing application code.
 
