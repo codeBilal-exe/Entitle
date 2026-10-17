@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     # The Verification Desk sign-in. Admin sign-in is off while the password is empty.
     admin_username: str = "admin"
-    admin_password: str = ""
+    admin_password: str = "Admin123"
     admin_name: str = "Entitle reviewer"
 
     n8n_base_url: str = ""
