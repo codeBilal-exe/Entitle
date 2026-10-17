@@ -1,52 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Find the support you're owed — Entitle{% endblock %}
+{% block title %}Entitle - Profile{% endblock %}
 {% block body_class %}page-citizen{% endblock %}
-
-{% macro receipt(row, state) -%}
-<li class="receipt receipt-{{ state }}">
-  <span class="receipt-mark" aria-hidden="true">{% if state == "met" %}✓{% elif state == "unmet" %}✕{% else %}?{% endif %}</span>
-  <div>
-    <p class="receipt-rule">{{ row.plain or rule_phrase(row.condition) }}
-      <span class="sr-only">{% if state == "met" %}(you meet this){% elif state == "unmet" %}(you do not meet this){% else %}(not answered yet){% endif %}</span></p>
-    <blockquote>“{{ row.quote }}”</blockquote>
-  </div>
-</li>
-{%- endmacro %}
-
-{% macro programme_card(card, show_apply=False) -%}
-{% set p = card.program %}
-<article class="prog">
-  <header class="prog-head">
-    <span class="flag" title="{{ country_name(p.country) }}">{{ flag(p.country) }}</span>
-    <div>
-      <h3>{{ p.title }}</h3>
-      <p class="prog-meta">{{ p.provider }} <span class="sep">/</span> {{ domain_label(p.domain) }} <span class="sep">/</span> {{ country_name(p.country) }}</p>
-    </div>
-  </header>
-  {% if p.summary %}<p class="prog-summary">{{ p.summary }}</p>{% endif %}
-  <ul class="receipts">
-    {% for row in card.match.met %}{{ receipt(row, "met") }}{% endfor %}
-    {% for row in card.match.unmet %}{{ receipt(row, "unmet") }}{% endfor %}
-    {% for row in card.match.unknown %}{{ receipt(row, "unknown") }}{% endfor %}
-    {% if not (card.match.met or card.match.unmet or card.match.unknown) %}
-      {% for c in card.rules.conditions %}{{ receipt({"plain": c.plain, "condition": c, "quote": c.source_quote}, "unknown") }}{% endfor %}
-    {% endif %}
-  </ul>
-  <footer class="prog-foot">
-    <span class="approved"><span class="actor-dot actor-human-dot"></span>Approved by {{ card.version.approved_by if card.version else "a reviewer" }}{% if card.version and card.version.approved_at %}, {{ day(card.version.approved_at) }}{% endif %}</span>
-    <span class="prog-actions">
-      <a class="link" href="{{ p.official_url }}" target="_blank" rel="noopener">Official page</a>
-      {% if show_apply %}
-        {% if applied.get(p.id) %}
-          <a class="btn btn-quiet" href="#packets" data-tab-link="packets">Packet ready</a>
-        {% else %}
-          <form method="post" action="/me/apply/{{ p.id }}"><button class="btn btn-primary" type="submit">Prepare my packet</button></form>
-        {% endif %}
-      {% endif %}
-    </span>
-  </footer>
-</article>
-{%- endmacro %}
 
 {% macro questionnaire(edit=False) -%}
 <form class="quiz" method="post" action="/me/details" data-quiz>
@@ -62,7 +16,7 @@
   </header>
 
   <ol class="q-list">
-    <li class="q">
+    <li class="q q-name">
       <div class="q-text">
         <label class="q-ask" for="q-name">What is your first name?</label>
         <p class="q-why">It goes on the packets you prepare. Nothing else.</p>
@@ -73,7 +27,7 @@
       </div>
     </li>
     {% for q in questions %}
-    <li class="q">
+    <li class="q q-{{ q.key }}">
       <div class="q-text">
         {% if q.kind == "choice" %}<p class="q-ask" id="q-{{ q.key }}-label">{{ q.ask }}</p>
         {% else %}<label class="q-ask" for="q-{{ q.key }}">{{ q.ask }}</label>{% endif %}
@@ -105,88 +59,142 @@
   </ol>
 
   <footer class="quiz-foot">
-    <label class="check"><input type="checkbox" name="consent" value="1" {{ 'checked' if (not profile or profile.consent_notifications) }}>
-      Tell me when a rule change means I may now qualify</label>
+    <fieldset class="notify-choice" data-email-optin>
+      <legend>Would you like email updates from Entitle?</legend>
+      <p class="notify-copy">We can email you when a rule change may open a new opportunity or affect support you already receive.</p>
+      <div class="seg" role="radiogroup" aria-label="Email updates">
+        <label class="seg-opt"><input type="radio" name="consent" value="1" data-email-yes required {{ 'checked' if profile and profile.consent_notifications }}><span>Yes, email me</span></label>
+        <label class="seg-opt"><input type="radio" name="consent" value="0" data-email-no required {{ 'checked' if not profile or not profile.consent_notifications }}><span>No, thanks</span></label>
+      </div>
+      <div class="notify-email" data-email-field {% if not (profile and profile.consent_notifications) %}hidden{% endif %}>
+        <label for="notification-email">Email address</label>
+        <input id="notification-email" type="email" name="notification_email" autocomplete="email" maxlength="255"
+               placeholder="you@example.com" value="{{ profile.notification_email if profile else '' }}"
+               {% if profile and profile.consent_notifications %}required{% endif %}>
+        {% if email_ready %}<small>Entitle will send new opportunities and approved rule updates here.</small>
+        {% else %}<small>Email sending is not configured on this server yet. In-app alerts will still appear.</small>{% endif %}
+      </div>
+    </fieldset>
     <button class="btn btn-primary btn-lg" type="submit" data-busy="Checking every rule…">{{ "Save and re-check" if edit else "Show what I'm owed" }}</button>
   </footer>
 </form>
 {%- endmacro %}
 
 {% macro how_strip() -%}
-<ol class="how-strip" aria-label="How every answer is made">
-  <li class="actor-ai"><span class="actor-dot"></span><div><strong>AI read the official page</strong><span>and drafted each rule with a quote</span></div></li>
-  <li class="actor-system"><span class="actor-dot"></span><div><strong>Code checked every quote</strong><span>word for word on the page</span></div></li>
-  <li class="actor-human"><span class="actor-dot"></span><div><strong>A person approved it</strong><span>before anyone saw it</span></div></li>
-  <li class="actor-system"><span class="actor-dot"></span><div><strong>Code matched your answers</strong><span>no guessing, no AI verdicts</span></div></li>
-</ol>
+<div class="tl-panel" aria-label="How every answer is checked">
+  <div class="tl-view" aria-hidden="true"><div class="tl-scene">
+    <div class="tl-s">
+      <div class="tl-stack"><div class="tl-page"></div><div class="tl-page"></div><div class="tl-page tl-page-top">
+        <i class="tl-ln" style="--k:0;width:70%"></i><i class="tl-ln" style="--k:1"></i><i class="tl-ln" style="--k:2;width:88%"></i>
+        <i class="tl-ln" style="--k:3;width:60%"></i><i class="tl-ln" style="--k:4"></i><i class="tl-ln" style="--k:5;width:80%"></i>
+        <i class="tl-ln" style="--k:6;width:45%"></i><i class="tl-scan"></i>
+      </div></div>
+      <b class="tl-quote" style="--k:1;left:6%;top:14%;font-size:84px">&ldquo;</b>
+      <b class="tl-quote" style="--k:3;right:8%;top:38%;font-size:64px">&rdquo;</b>
+      <b class="tl-quote" style="--k:5;left:14%;bottom:12%;font-size:72px">&ldquo;</b>
+    </div>
+    <div class="tl-s" aria-hidden="true"><div class="tl-col">
+      <div class="tl-words"><span class="tl-word" style="--k:0">Applications</span><span class="tl-word" style="--k:1">close</span><span class="tl-word" style="--k:2">on</span><span class="tl-word" style="--k:3">30</span><span class="tl-word" style="--k:4">June</span><span class="tl-word" style="--k:5">sharp</span></div>
+      <p class="tl-count"><b>0</b> of 6 words found on the official page</p>
+    </div></div>
+    <div class="tl-s" aria-hidden="true"><div class="tl-ringwrap">
+      <i class="tl-pulse" style="--k:0"></i><i class="tl-pulse" style="--k:1"></i><i class="tl-pulse" style="--k:2"></i>
+      <svg viewBox="0 0 200 200"><circle class="tl-disc" cx="100" cy="100" r="78"/><circle class="tl-ring" cx="100" cy="100" r="78" pathLength="100"/><path class="tl-tick" d="M62 104 l26 26 l52 -56" pathLength="100"/></svg>
+      <span class="tl-cap">Approved by a person</span>
+    </div></div>
+    <div class="tl-s" aria-hidden="true"><svg class="tl-match" viewBox="0 0 360 280">
+      <text x="50" y="14" text-anchor="middle">your answers</text><text x="310" y="14" text-anchor="middle">official rules</text>
+      <path class="tl-match-path" style="--k:0" pathLength="100" d="M50 50 C170 50,190 115,310 115"/><path class="tl-match-path" style="--k:1" pathLength="100" d="M50 115 C170 115,190 50,310 50"/><path class="tl-match-path" style="--k:2" pathLength="100" d="M50 180 C170 180,190 245,310 245"/><path class="tl-match-path" style="--k:3" pathLength="100" d="M50 245 C170 245,190 180,310 180"/>
+      <g class="tl-left-dots"><circle cx="50" cy="50" r="9"/><circle cx="50" cy="115" r="9"/><circle cx="50" cy="180" r="9"/><circle cx="50" cy="245" r="9"/></g><g class="tl-right-dots"><circle style="--k:1" cx="310" cy="50" r="9"/><circle style="--k:0" cx="310" cy="115" r="9"/><circle style="--k:3" cx="310" cy="180" r="9"/><circle style="--k:2" cx="310" cy="245" r="9"/></g>
+    </svg></div>
+  </div></div>
+  <div class="tl-rail-wrap">
+    <div class="tl-spine" aria-hidden="true"><i class="tl-fill"></i></div>
+    <ol class="tl-rail" aria-label="How every answer is checked">
+      <li class="tl-item"><span class="tl-dot" aria-hidden="true"></span><div><h3>Agent read the official page</h3><p>and drafted each rule with a quote</p></div></li>
+      <li class="tl-item"><span class="tl-dot" aria-hidden="true"></span><div><h3>Agent checked every quote</h3><p>word for word on the page</p></div></li>
+      <li class="tl-item tl-human"><span class="tl-dot" aria-hidden="true"></span><div><h3>A person approved it</h3><p>before anyone saw it</p></div></li>
+      <li class="tl-item"><span class="tl-dot" aria-hidden="true"></span><div><h3>Agent matched your answers</h3><p>no guessing, no AI verdicts</p></div></li>
+    </ol>
+  </div>
+</div>
 {%- endmacro %}
 
 {% block content %}
 {% if not attrs %}
-<section class="hero">
+<section class="hero hero-home">
+  <div class="hero-visual">
+    <div class="elx" data-loop="7000" role="button" tabindex="0" aria-label="Replay Entitle logo animation">
+      <div class="elx-mark"><div class="elx-thud"><div class="elx-tilt">
+        <svg class="elx-layer elx-tile" viewBox="0 0 128 128" aria-hidden="true">
+          <defs><clipPath id="entitleLogoClip"><rect x="4" y="4" width="120" height="120" rx="32"/></clipPath></defs>
+          <g clip-path="url(#entitleLogoClip)"><circle class="elx-fill" cx="64" cy="64" r="96"/></g>
+          <rect class="elx-outline" x="4" y="4" width="120" height="120" rx="32" pathLength="1"/>
+        </svg>
+        <div class="elx-sheen" aria-hidden="true"></div>
+        <svg class="elx-layer elx-page" viewBox="0 0 128 128" aria-hidden="true">
+          <path class="elx-page-shape" pathLength="1" d="M44 30 H72 L90 48 V94 a8 8 0 0 1 -8 8 H44 a8 8 0 0 1 -8 -8 V38 a8 8 0 0 1 8 -8 Z"/>
+          <path class="elx-fold" d="M72 30 L90 48 H78 a6 6 0 0 1 -6 -6 Z"/>
+        </svg>
+        <svg class="elx-layer elx-marks" viewBox="0 0 128 128" aria-hidden="true">
+          <defs>
+            <clipPath id="entitleLogoPage"><path d="M44 30 H72 L90 48 V94 a8 8 0 0 1 -8 8 H44 a8 8 0 0 1 -8 -8 V38 a8 8 0 0 1 8 -8 Z"/></clipPath>
+            <linearGradient id="entitleLogoBeam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#12877a" stop-opacity="0"/><stop offset=".8" stop-color="#12877a" stop-opacity=".38"/><stop offset="1" stop-color="#12877a" stop-opacity=".9"/></linearGradient>
+          </defs>
+          <g class="elx-base"><path d="M46 50 H60"/><path d="M70 70 H80"/><path d="M46 88 H72"/></g>
+          <g class="elx-lit"><path class="elx-d1" pathLength="1" d="M46 50 H60"/><path class="elx-d2" pathLength="1" d="M70 70 H80"/><path class="elx-d3" pathLength="1" d="M46 88 H72"/></g>
+          <g clip-path="url(#entitleLogoPage)"><rect class="elx-beam" x="34" y="14" width="58" height="16" fill="url(#entitleLogoBeam)"/></g>
+          <path class="elx-tick" pathLength="1" d="M46 70 l5 5 l10 -11"/>
+        </svg>
+        <svg class="elx-layer elx-fx" viewBox="0 0 128 128" aria-hidden="true">
+          <circle class="elx-rip" cx="64" cy="64" r="60"/>
+          <g class="elx-sparks">
+            <circle style="--spark-angle:0deg" cx="64" cy="64" r="2.6"/><circle style="--spark-angle:30deg" cx="64" cy="64" r="2"/>
+            <circle style="--spark-angle:60deg" cx="64" cy="64" r="2.6"/><circle style="--spark-angle:90deg" cx="64" cy="64" r="2"/>
+            <circle style="--spark-angle:120deg" cx="64" cy="64" r="2.6"/><circle style="--spark-angle:150deg" cx="64" cy="64" r="2"/>
+            <circle style="--spark-angle:180deg" cx="64" cy="64" r="2.6"/><circle style="--spark-angle:210deg" cx="64" cy="64" r="2"/>
+            <circle style="--spark-angle:240deg" cx="64" cy="64" r="2.6"/><circle style="--spark-angle:270deg" cx="64" cy="64" r="2"/>
+            <circle style="--spark-angle:300deg" cx="64" cy="64" r="2.6"/><circle style="--spark-angle:330deg" cx="64" cy="64" r="2"/>
+          </g>
+        </svg>
+      </div></div></div>
+      <div class="elx-word" aria-hidden="true"><span>E</span><span>n</span><span>t</span><span>i</span><span>t</span><span>l</span><span>e</span></div>
+    </div>
+  </div>
   <div class="hero-copy">
     <p class="eyebrow">Free <span class="sep">·</span> No sign-up <span class="sep">·</span> {{ programme_count }} verified programmes in {{ country_count }} countries</p>
-    <h1>Find the support <span class="hl">you're owed.</span></h1>
-    <p class="lede">Answer a few questions. Entitle checks you against rules that AI read from official government pages, that code verified word for word, and that a person approved. Every answer shows its receipt.</p>
+    <h1>Find support that <span class="hl">fits your life.</span></h1>
+    <p class="lede">Share a few details and we’ll check them against official support rules. Every match shows the source wording, checked by code and approved by a person.</p>
+    <a class="btn btn-primary btn-lg hero-cta" href="#questions">Set up my profile <span aria-hidden="true">→</span></a>
   </div>
-  {{ how_strip() }}
+</section>
+
+<section class="tl-hero-scroll" data-hero-scroll aria-label="How Entitle checks support rules">
+  <div class="tl-hero-stage">
+    {{ how_strip() }}
+  </div>
 </section>
 
 <section id="questions" class="quiz-wrap">{{ questionnaire(False) }}</section>
 
-<section class="preview">
-  <h2 class="group-title">Programmes Entitle can check right now <span>{{ groups.unchecked|length }}</span></h2>
-  <p class="group-note">Each rule below is the official wording, approved by a reviewer. Your answers turn the question marks into ticks.</p>
-  <div class="prog-grid">{% for card in groups.unchecked %}{{ programme_card(card) }}{% endfor %}</div>
-</section>
-
 {% else %}
-<section class="hero hero-compact">
+<section class="hero hero-compact profile-summary">
   <div class="hero-copy">
     <p class="eyebrow">Hi {{ citizen.display_name.split(" ")[0] }}</p>
     <h1>{% if groups.eligible %}You may be owed <span class="hl">{{ groups.eligible|length }} programme{{ "s" if groups.eligible|length != 1 }}.</span>{% else %}Here is where you stand.{% endif %}</h1>
     <ul class="answer-chips">
-      {% for r in rows %}<li><span>{{ r.label }}</span>{{ r.value }}</li>{% endfor %}
+      {% for r in rows %}<li><span>{{ r.label }}</span><strong>{{ r.value }}</strong></li>{% endfor %}
       <li class="answer-edit"><a href="#answers" data-tab-link="answers">Edit answers</a></li>
     </ul>
+    <a class="btn btn-primary hero-cta" href="/jobs">Open Job feed <span aria-hidden="true">→</span></a>
   </div>
-  {{ how_strip() }}
 </section>
 
 <nav class="tabs" aria-label="Your sections" data-tabs>
-  <a href="#matches" data-tab="matches">Matches <span class="count">{{ groups.eligible|length }}</span></a>
+  <a href="#answers" data-tab="answers">Profile</a>
   <a href="#packets" data-tab="packets">Packets <span class="count">{{ applications|length }}</span></a>
   <a href="#alerts" data-tab="alerts">Alerts {% if unread %}<span class="count count-hot">{{ unread }}</span>{% endif %}</a>
-  <a href="#answers" data-tab="answers">My answers</a>
 </nav>
-
-<section id="matches" class="tab-panel" data-panel="matches">
-  <h2 class="group-title">You qualify <span>{{ groups.eligible|length }}</span></h2>
-  {% if groups.eligible %}
-    <div class="prog-grid">{% for card in groups.eligible %}{{ programme_card(card, True) }}{% endfor %}</div>
-  {% else %}
-    <p class="empty-line">No verified programme matches you yet. When a reviewer approves new rules, Entitle re-checks you and sends an alert.</p>
-  {% endif %}
-
-  {% if groups.likely %}
-  <h2 class="group-title">One answer away <span>{{ groups.likely|length }}</span></h2>
-  <p class="group-note">Answer the missing question in <a class="link" href="#answers" data-tab-link="answers">My answers</a> to settle these.</p>
-  <div class="prog-grid">{% for card in groups.likely %}{{ programme_card(card) }}{% endfor %}</div>
-  {% endif %}
-
-  {% if groups.not_eligible %}
-  <details class="fold">
-    <summary>Not a match right now <span>{{ groups.not_eligible|length }}</span></summary>
-    <div class="prog-grid">{% for card in groups.not_eligible %}{{ programme_card(card) }}{% endfor %}</div>
-  </details>
-  {% endif %}
-  {% if groups.elsewhere %}
-  <details class="fold">
-    <summary>Programmes in other countries <span>{{ groups.elsewhere|length }}</span></summary>
-    <div class="prog-grid">{% for card in groups.elsewhere %}{{ programme_card(card) }}{% endfor %}</div>
-  </details>
-  {% endif %}
-</section>
 
 <section id="packets" class="tab-panel" data-panel="packets">
   {% if not applications %}

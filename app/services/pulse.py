@@ -471,6 +471,7 @@ def fan_out(
     changed_line = describe_diff_lines(diff)[0] if old_rules.get("conditions") else "Entitle started checking this programme."
     quote = _first_quote(new_rules, diff)
     checked = notified = held = 0
+    email_notifications: list[Notification] = []
     for user, attrs, consent in people_with_profiles(db):
         checked += 1
         before = matching.standing(program.country, old_rules, attrs)
@@ -495,10 +496,16 @@ def fan_out(
             if not consent:
                 continue
             detail["meaning"] = f"You may now qualify for {program.title}."
-            db.add(Notification(user_id=user.id, program_id=program.id, job_id=job.id,
-                                kind=kind, status="queued", detail_json=json.dumps(detail)))
+            notification = Notification(user_id=user.id, program_id=program.id, job_id=job.id,
+                                         kind=kind, status="queued", detail_json=json.dumps(detail))
+            db.add(notification)
+            email_notifications.append(notification)
             notified += 1
     db.commit()
+    from app.services.email_updates import send_notification_email
+
+    for notification in email_notifications:
+        send_notification_email(db, notification)
     log_event(
         db,
         stage="fan_out",

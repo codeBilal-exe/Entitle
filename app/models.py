@@ -35,6 +35,7 @@ class Profile(Base):
     attributes_json: Mapped[str] = mapped_column(Text, default="{}")
     about: Mapped[str] = mapped_column(Text, default="")
     consent_notifications: Mapped[bool] = mapped_column(Boolean, default=True)
+    notification_email: Mapped[str] = mapped_column(String(255), default="")
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     user: Mapped[User] = relationship(back_populates="profile")
@@ -130,6 +131,8 @@ class Notification(Base):
     detail_json: Mapped[str] = mapped_column(Text, default="{}")
     reviewed_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
     read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    email_error: Mapped[str] = mapped_column(String(500), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 

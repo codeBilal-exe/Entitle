@@ -1,6 +1,6 @@
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import get_settings
@@ -62,7 +62,31 @@ def init_db() -> None:
         schema_engine = _make_engine(_normalize(direct))
         try:
             Base.metadata.create_all(bind=schema_engine)
+            _upgrade_columns(schema_engine)
         finally:
             schema_engine.dispose()
     else:
         Base.metadata.create_all(bind=engine)
+        _upgrade_columns(engine)
+
+
+def _upgrade_columns(bind) -> None:
+    """Add fields introduced after the initial hackathon schema without data loss."""
+    additions = {
+        "profiles": {
+            "notification_email": "VARCHAR(255) NOT NULL DEFAULT ''",
+        },
+        "notifications": {
+            "email_sent_at": "TIMESTAMP NULL",
+            "email_error": "VARCHAR(500) NOT NULL DEFAULT ''",
+        },
+    }
+    inspector = inspect(bind)
+    with bind.begin() as connection:
+        for table, columns in additions.items():
+            if not inspector.has_table(table):
+                continue
+            existing = {column["name"] for column in inspector.get_columns(table)}
+            for name, declaration in columns.items():
+                if name not in existing:
+                    connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {declaration}"))

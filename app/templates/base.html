@@ -5,26 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Entitle{% endblock %}</title>
   <meta name="description" content="Entitle finds the public support you are owed and shows the exact words on the official page that prove it.">
+  <meta name="theme-color" content="#f3f8f7">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=11">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='6' y='3' width='20' height='26' rx='3' fill='%23142033'/><path d='M11 16l4 4 7-8' stroke='%2334d399' stroke-width='3' fill='none' stroke-linecap='round'/></svg>">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg?v=2">
+  <link rel="stylesheet" href="/static/styles.css?v=16">
+  <link rel="stylesheet" href="/static/timeline.css?v=15">
 </head>
 <body class="{% block body_class %}{% endblock %}">
   <a class="skip" href="#main">Skip to content</a>
   <header class="topbar">
     <div class="topbar-inner">
-      <a class="brand" href="/" aria-label="Entitle home">
-        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="3" width="20" height="26" rx="3"/><path d="M11 16l4 4 7-8"/></svg>
-        <span class="brand-word">Entitle</span>
+      <a class="brand" href="/profile" aria-label="Entitle home">
+        <img class="brand-lockup" src="/static/logo.svg?v=2" alt="Entitle">
         {% block brand_suffix %}{% endblock %}
       </a>
+      <nav class="primary-nav" aria-label="Main navigation">
+        {% if admin %}
+          <a href="/profile">Profile</a><a href="/jobs">Job feed</a>
+        {% elif attrs %}
+          <a href="/profile" {% if view == "profile" %}aria-current="page"{% endif %}>Profile</a><a href="/jobs" {% if view == "jobs" %}aria-current="page"{% endif %}>Job feed</a>
+        {% else %}
+          <a href="/profile" aria-current="page">Profile</a><a href="/jobs">Job feed</a>
+        {% endif %}
+      </nav>
       <nav class="who" aria-label="Views">
         {% if admin %}
           {% block view_switch %}<a class="btn btn-ghost btn-sm" href="/desk">Verification Desk</a>{% endblock %}
           <span class="who-name"><span class="avatar avatar-letter">{{ admin.display_name[:1]|upper }}</span>{{ admin.display_name }}</span>
-          <form method="post" action="/admin/logout"><button class="btn btn-quiet" type="submit">Sign out</button></form>
+          <form method="post" action="/admin/logout"><button class="btn btn-quiet btn-signout" type="submit">Sign out</button></form>
         {% else %}
           {% if citizen %}<span class="who-hello">Hi, {{ citizen.display_name.split(" ")[0] }}</span>{% endif %}
           <button class="btn btn-ghost btn-sm" type="button" data-open-admin>
@@ -60,7 +70,17 @@
   </dialog>
   {% endif %}
   {% if flash %}
-  <div class="flash flash-{{ flash.kind }}" role="status"><div class="flash-inner">{{ flash.text }}</div></div>
+  {% set toast_text = flash.text %}
+  {% set toast_kind = flash.kind %}
+  {% set toast_lower = flash.text|lower %}
+  {% if 'deleted' in toast_lower or 'deletion' in toast_lower %}
+    {% set toast_kind = 'delete' %}{% set toast_text = 'Your Entitle data was deleted.' %}
+  {% elif 'removed' in toast_lower %}
+    {% set toast_kind = 'delete' %}{% set toast_text = 'Item removed.' %}
+  {% endif %}
+  <div class="flash flash-{{ toast_kind }}" role="{% if toast_kind == 'error' or toast_kind == 'warn' %}alert{% else %}status{% endif %}" aria-live="{% if toast_kind == 'error' or toast_kind == 'warn' %}assertive{% else %}polite{% endif %}" data-toast>
+    <div class="flash-inner"><span class="toast-message" title="{{ toast_text }}">{{ toast_text }}</span><button class="toast-dismiss" type="button" data-toast-dismiss aria-label="Dismiss notification">&times;</button></div>
+  </div>
   {% endif %}
   <main id="main">
     {% block content %}{% endblock %}
@@ -68,6 +88,6 @@
   <footer class="foot">
     <p>Entitle gives information, not legal advice. Rules come only from official pages, and a person approves every rule before it is used.</p>
   </footer>
-  <script src="/static/app.js?v=11" defer></script>
+  <script src="/static/app.js?v=21" defer></script>
 </body>
 </html>

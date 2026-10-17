@@ -1,0 +1,38 @@
+:root {
+  --color-paper: #f3f8f7;
+  --color-paper-raised: #ffffff;
+  --color-ink: #153330;
+  --color-ink-soft: #43615d;
+  --color-muted: #6c827e;
+  --color-rule: #d8e5e2;
+  --color-rule-soft: #e9f0ee;
+  --color-teal: #0a766f;
+  --color-teal-deep: #075b56;
+  --color-teal-soft: #dff2ee;
+  --color-teal-wash: #edf8f5;
+  --color-focus: #0a766f;
+  --color-ai: #4f648a;
+  --color-ai-soft: #e9eef5;
+  --color-danger: #ad3935;
+  --color-danger-soft: #f9e9e7;
+  --color-hold: #895515;
+  --color-hold-soft: #faf0dc;
+
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4.5rem;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-short: 180ms;
+  --dur-reveal: 620ms;
+  --radius-card: 20px;
+  --radius-pill: 999px;
+}

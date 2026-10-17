@@ -24,6 +24,15 @@ class Settings(BaseSettings):
     n8n_shared_secret: str = "dev-shared-secret"
     base_url: str = "http://127.0.0.1:8000"
 
+    # SMTP is optional locally; when configured, approved opportunity alerts are emailed.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_from_name: str = "Entitle Updates"
+    smtp_use_tls: bool = True
+
     port: int = 8000
     database_url: str = "sqlite:///./data/entitle.db"
     database_url_unpooled: str = ""
@@ -34,6 +43,10 @@ class Settings(BaseSettings):
     @property
     def admin_ready(self) -> bool:
         return bool(self.admin_username.strip() and self.admin_password)
+
+    @property
+    def email_ready(self) -> bool:
+        return bool(self.smtp_host.strip() and self.smtp_from_email.strip())
 
 
 @lru_cache

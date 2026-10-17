@@ -1,0 +1,54 @@
+{% macro receipt(row, state) -%}
+<li class="receipt receipt-{{ state }}">
+  <span class="receipt-mark" aria-hidden="true">{% if state == "met" %}✓{% elif state == "unmet" %}✕{% else %}?{% endif %}</span>
+  <div>
+    <p class="receipt-rule">{{ row.plain or rule_phrase(row.condition) }}
+      <span class="sr-only">{% if state == "met" %}(you meet this){% elif state == "unmet" %}(you do not meet this){% else %}(not answered yet){% endif %}</span></p>
+    <blockquote>“{{ row.quote }}”</blockquote>
+  </div>
+</li>
+{%- endmacro %}
+
+{% macro programme_card(card, show_apply=False) -%}
+{% set p = card.program %}
+<article class="prog">
+  <header class="prog-head">
+    <span class="provider-logo" data-provider-logo role="img" aria-label="{{ p.provider }} logo">
+      <span class="provider-logo-fallback" aria-hidden="true">{{ p.provider[:1]|upper }}</span>
+      <img src="{{ source_icon_url(p.official_url) }}"
+           data-icon-fallback="https://www.google.com/s2/favicons?domain_url={{ p.official_url|urlencode }}&amp;sz=128"
+           alt="" loading="lazy" referrerpolicy="no-referrer">
+    </span>
+    <div>
+      <h3>{{ p.title }}</h3>
+      <p class="prog-meta">{{ p.provider }} <span class="sep">/</span> {{ domain_label(p.domain) }} <span class="sep">/</span> {{ country_name(p.country) }}</p>
+    </div>
+  </header>
+  {% if p.summary %}<p class="prog-summary">{{ p.summary }}</p>{% else %}<p class="prog-summary prog-summary-empty" aria-hidden="true"></p>{% endif %}
+  <ul class="receipts">
+    {% set match_total = card.match.met|length + card.match.unmet|length + card.match.unknown|length %}
+    {% set total = match_total if match_total else card.rules.conditions|length %}
+    {% set shown = namespace(value=0) %}
+    {% for row in card.match.met %}{% if shown.value < 2 %}{{ receipt(row, "met") }}{% set shown.value = shown.value + 1 %}{% endif %}{% endfor %}
+    {% for row in card.match.unmet %}{% if shown.value < 2 %}{{ receipt(row, "unmet") }}{% set shown.value = shown.value + 1 %}{% endif %}{% endfor %}
+    {% for row in card.match.unknown %}{% if shown.value < 2 %}{{ receipt(row, "unknown") }}{% set shown.value = shown.value + 1 %}{% endif %}{% endfor %}
+    {% if not match_total %}
+      {% for c in card.rules.conditions %}{% if shown.value < 2 %}{{ receipt({"plain": c.plain, "condition": c, "quote": c.source_quote}, "unknown") }}{% set shown.value = shown.value + 1 %}{% endif %}{% endfor %}
+    {% endif %}
+    {% if total > shown.value %}<li class="receipt receipt-more">+{{ total - shown.value }} more checks. Open the official source for all rules.</li>{% endif %}
+  </ul>
+  <footer class="prog-foot">
+    <span class="approved"><span class="actor-dot actor-human-dot"></span>Approved by {{ card.version.approved_by if card.version else "a reviewer" }}{% if card.version and card.version.approved_at %}, {{ day(card.version.approved_at) }}{% endif %}</span>
+    <span class="prog-actions">
+      <a class="link" href="{{ p.official_url }}" target="_blank" rel="noopener">Official page</a>
+      {% if show_apply %}
+        {% if applied.get(p.id) %}
+          <a class="btn btn-quiet" href="/profile#packets">Packet ready</a>
+        {% else %}
+          <form method="post" action="/me/apply/{{ p.id }}"><button class="btn btn-primary" type="submit">Prepare my packet</button></form>
+        {% endif %}
+      {% endif %}
+    </span>
+  </footer>
+</article>
+{%- endmacro %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% import "_programme_macros.html" as programs with context %}
+{% block title %}Entitle - Job Feed{% endblock %}
+{% block body_class %}page-citizen page-feed{% endblock %}
+
+{% block content %}
+
+
+<section class="feed-heading">
+  <p class="eyebrow">Your feed <span class="sep">·</span> {{ groups.eligible|length }} verified match{{ "es" if groups.eligible|length != 1 }}</p>
+  <h1>Job feed</h1>
+  <p class="lede">We check your profile against opportunities and show the official source behind every match.</p>
+</section>
+
+<section class="profile-summary profile-summary-feed" aria-label="Your saved profile">
+  <div class="profile-summary-feed-heading">
+    <div class="profile-card-person">
+      <span class="profile-summary-avatar" aria-hidden="true">{{ citizen.display_name[:1]|upper }}</span>
+      <div>
+        <p class="eyebrow">Your profile</p>
+        <h2>{{ citizen.display_name }}</h2>
+        <p class="profile-card-note">Your saved details personalize these matches.</p>
+      </div>
+    </div>
+    <a class="btn btn-ghost" href="/profile">Edit profile</a>
+  </div>
+  <ul class="answer-chips profile-summary-chips">
+    {% for r in rows %}<li><span>{{ r.label }}</span><strong>{{ r.value }}</strong></li>{% endfor %}
+  </ul>
+</section>
+
+{% if groups.eligible %}
+<section class="feed-group">
+  <h2 class="group-title">Verified matches <span>{{ groups.eligible|length }}</span></h2>
+  <div class="prog-grid">{% for card in groups.eligible %}{{ programs.programme_card(card, True) }}{% endfor %}</div>
+</section>
+{% else %}
+<section class="empty feed-empty">
+  <span class="feed-empty-mark" aria-hidden="true">E</span>
+  <h2>No verified matches yet</h2>
+  <p>When a reviewer approves a programme that fits your profile, it will appear here with its official source and the rule that matched.</p>
+  <a class="btn btn-ghost" href="/profile">Review my profile</a>
+</section>
+{% endif %}
+
+{% if groups.likely %}
+<section class="feed-group">
+  <h2 class="group-title">One answer away <span>{{ groups.likely|length }}</span></h2>
+  <p class="group-note">Fill in a missing answer on your <a class="link" href="/profile">profile</a> to check these.</p>
+  <div class="prog-grid">{% for card in groups.likely %}{{ programs.programme_card(card) }}{% endfor %}</div>
+</section>
+{% endif %}
+
+{% if groups.not_eligible %}
+<details class="fold feed-fold">
+  <summary>Not a match right now <span>{{ groups.not_eligible|length }}</span></summary>
+  <div class="prog-grid">{% for card in groups.not_eligible %}{{ programs.programme_card(card) }}{% endfor %}</div>
+</details>
+{% endif %}
+{% if groups.elsewhere %}
+<details class="fold feed-fold">
+  <summary>Programmes in other countries <span>{{ groups.elsewhere|length }}</span></summary>
+  <div class="prog-grid">{% for card in groups.elsewhere %}{{ programs.programme_card(card) }}{% endfor %}</div>
+</details>
+{% endif %}
+{% endblock %}

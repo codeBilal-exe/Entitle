@@ -9,7 +9,7 @@ Entitle is AI that has to show its receipts:
 1. **AI reads** an official programme page from any country and drafts the eligibility rules. Every rule must quote the page.
 2. **Code checks every quote** word for word against the page. A made-up quote is blocked and can never go live.
 3. **A person approves.** A reviewer ticks the rules that are right and unticks optional or wrong ones. Only ticked, verified rules go live.
-4. **Everyone is re-checked automatically.** People who may now qualify get an alert. People who may lose support are held until a reviewer releases the news.
+4. **Everyone is re-checked automatically.** People who may now qualify get an alert. People who may lose support are held until a reviewer releases the news. People who opt into email updates can receive those approved alerts by email too.
 5. **The applicant approves** their own packet before using it, and submits it themselves on the official site.
 
 The AI drafts and explains. It never decides who qualifies, and it never tells anyone bad news on its own.
@@ -59,6 +59,7 @@ Set in `.env`:
 - `DATABASE_URL`, `DATABASE_URL_UNPOOLED`: Neon's pooled and direct connection strings (`neon env pull` writes both). Leave them out to use SQLite
 - `BASE_URL`: the public address of the app, for example `http://127.0.0.1:8000`
 - `SECRET_KEY`: a long random string
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, `SMTP_USE_TLS`: SMTP delivery for profile email updates. Leave SMTP unset to keep using in-app alerts only. Users choose email updates and save their address in their profile; new-opportunity emails go out after rules are approved, and potentially negative updates go out only after a reviewer releases them.
 
 ## Deploy (Alternate Clouds)
 

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="56" viewBox="0 0 220 56" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Entitle</title>
+  <rect x="3" y="3" width="50" height="50" rx="16" fill="#0A766F"/>
+  <path d="M17 14h18l5 5v22H17V14Z" fill="#F3F8F7"/>
+  <path d="M35 14v7h6" stroke="#91D4C7" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M22 24h12M22 30h7" stroke="#0A766F" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="m22 35 3.5 3.5L33 31" stroke="#0A766F" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="66" y="40" fill="#153330" font-family="'Bricolage Grotesque', 'Segoe UI', sans-serif" font-size="35" font-weight="800" letter-spacing="-1.8">Entitle</text>
+</svg>

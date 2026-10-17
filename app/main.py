@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -32,6 +33,24 @@ app.include_router(internal_router)
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+
+def source_icon_url(source_url: str) -> str:
+    """Return the favicon path on a validated official HTTP(S) source."""
+    try:
+        parsed = urlsplit(source_url or "")
+        host = parsed.hostname
+        port = parsed.port
+    except ValueError:
+        return ""
+    if parsed.scheme not in {"http", "https"} or not host:
+        return ""
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+    authority = host + (f":{port}" if port else "")
+    return f"{parsed.scheme}://{authority}/favicon.ico"
+
+
 templates.env.globals.update(
     ago=plain.ago,
     attr_label=plain.attr_label,
@@ -43,6 +62,7 @@ templates.env.globals.update(
     stage_label=plain.stage_label,
     status_word=plain.status_word,
     value_label=plain.value_label,
+    source_icon_url=source_icon_url,
 )
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 approval_gate = ApprovalGate()
@@ -140,7 +160,7 @@ def require(request: Request, db: Session, role: str) -> tuple[User | None, Redi
     user = citizen_of(request, db)
     if user is None:
         flash(request, "Answer the questions first so Entitle knows who you are.", "warn")
-        return None, go("/#questions")
+        return None, go("/profile#questions")
     return user, None
 
 
@@ -153,7 +173,21 @@ def health():
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, db: Session = Depends(get_db)):
-    return citizen_page(request, db, citizen_of(request, db))
+    return citizen_page(request, db, citizen_of(request, db), view="profile")
+
+
+@app.get("/profile", response_class=HTMLResponse)
+def profile_page(request: Request, db: Session = Depends(get_db)):
+    return citizen_page(request, db, citizen_of(request, db), view="profile")
+
+
+@app.get("/jobs", response_class=HTMLResponse)
+def jobs_page(request: Request, db: Session = Depends(get_db)):
+    user = citizen_of(request, db)
+    if not user or not pulse.profile_attrs(own_profile(db, user)):
+        flash(request, "Set up your profile to see your feed.", "warn")
+        return go("/profile#questions")
+    return citizen_page(request, db, user, view="jobs")
 
 
 def _client_key(request: Request) -> str:
@@ -220,7 +254,7 @@ def _choice_value(attrs: dict[str, Any], key: str) -> str:
     return "" if value is None else str(value)
 
 
-def citizen_page(request: Request, db: Session, user: User | None):
+def citizen_page(request: Request, db: Session, user: User | None, view: str = "profile"):
     profile = own_profile(db, user) if user else None
     attrs = pulse.profile_attrs(profile)
     groups: dict[str, list[dict[str, Any]]] = {k: [] for k in ("eligible", "likely", "not_eligible", "elsewhere", "unchecked")}
@@ -264,7 +298,8 @@ def citizen_page(request: Request, db: Session, user: User | None):
     for q in QUESTIONS:
         questions.append({**q, "used_by": usage.get(q["key"], 0), "value": _choice_value(attrs, q["key"])})
     return render(
-        request, "citizen.html", db,
+        request, "job_feed.html" if view == "jobs" else "citizen.html", db,
+        view=view,
         profile=profile,
         attrs=attrs,
         rows=plain.profile_rows(attrs),
@@ -277,6 +312,7 @@ def citizen_page(request: Request, db: Session, user: User | None):
         programme_count=len(programs),
         country_count=len({p.country for p in programs if p.country}),
         countries=sorted(COUNTRY_NAMES, key=plain.country_name),
+        email_ready=settings.email_ready,
     )
 
 
@@ -307,10 +343,11 @@ def me_details(
     unemployed: str = Form(""),
     disability: str = Form(""),
     consent: str = Form(""),
+    notification_email: str = Form(""),
     db: Session = Depends(get_db),
 ):
     user = citizen_of(request, db)
-    target = "/#answers" if user else "/#questions"
+    target = "/profile#answers" if user else "/profile#questions"
     name = re.sub(r"\s+", " ", name).strip()
     if user is None and not name:
         flash(request, "Tell us your first name so your packets carry it.", "error")
@@ -333,6 +370,10 @@ def me_details(
     if not attrs:
         flash(request, "Answer at least one question so Entitle can check the rules for you.", "warn")
         return go(target)
+    notification_email = notification_email.strip().lower()
+    if consent == "1" and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", notification_email):
+        flash(request, "Enter a valid email address to receive Entitle updates, or choose No.", "error")
+        return go(target)
     first_time = user is None
     if user is None:
         user = new_citizen(db, name)
@@ -341,11 +382,12 @@ def me_details(
         user.display_name = name[:120]
     profile = save_attrs(db, user, attrs)
     profile.consent_notifications = consent == "1"
+    profile.notification_email = notification_email if consent == "1" else ""
     db.commit()
     log_event(db, stage="profile_saved", detail=f"{len(attrs)} answers saved", case_id=str(user.id))
     flash(request, "Your answers are saved. Here is what you may be owed." if first_time
           else "Your answers are updated and your matches re-checked.")
-    return go("/#matches")
+    return go("/jobs")
 
 
 @app.post("/me/apply/{program_id}")
@@ -356,12 +398,12 @@ def me_apply(program_id: str, request: Request, db: Session = Depends(get_db)):
     program = db.get(Program, program_id)
     if not program or program.status != "active":
         flash(request, "That programme is no longer listed.", "error")
-        return go("/#matches")
+        return go("/jobs")
     attrs = pulse.profile_attrs(own_profile(db, user))
     rules = pulse.load_rules(db, program)
     if matching.match(program.country, rules, attrs).status != "eligible":
         flash(request, "You can only prepare a packet for a programme you qualify for.", "warn")
-        return go("/#matches")
+        return go("/jobs")
     key = f"{user.id}:{program.id}"
     if db.query(Application).filter(Application.idempotency_key == key).first() is None:
         payload = {
@@ -380,7 +422,7 @@ def me_apply(program_id: str, request: Request, db: Session = Depends(get_db)):
                            idempotency_key=key))
         db.commit()
     flash(request, f"Your packet for {program.title} is ready. Check it, then approve it.")
-    return go("/#applications")
+    return go("/profile#packets")
 
 
 def _own_application(request: Request, db: Session, application_id: str):
@@ -407,7 +449,7 @@ def me_approve(application_id: str, request: Request, db: Session = Depends(get_
         log_event(db, stage="packet_approved", detail=f"{user.display_name} approved their packet",
                   case_id=application.id, human_decision=True)
         flash(request, "Approved. Open the official page to submit it in your own name.")
-    return go("/#applications")
+    return go("/profile#packets")
 
 
 @app.post("/me/applications/{application_id}/withdraw")
@@ -417,8 +459,8 @@ def me_withdraw(application_id: str, request: Request, db: Session = Depends(get
         return blocked
     db.delete(application)
     db.commit()
-    flash(request, "Packet removed.")
-    return go("/#applications")
+    flash(request, "Packet removed.", "delete")
+    return go("/profile#packets")
 
 
 @app.post("/me/alerts/read")
@@ -431,7 +473,7 @@ def me_alerts_read(request: Request, db: Session = Depends(get_db)):
         if alert_visible(row):
             row.read_at = now
     db.commit()
-    return go("/#alerts")
+    return go("/profile#alerts")
 
 
 @app.post("/me/delete")
@@ -447,7 +489,7 @@ def me_delete(request: Request, db: Session = Depends(get_db)):
     db.delete(user)
     db.commit()
     request.session.pop("citizen_id", None)
-    flash(request, "Everything Entitle stored about you is deleted.")
+    flash(request, "Your Entitle data was deleted.", "delete")
     return go("/")
 
 
@@ -621,6 +663,10 @@ def desk_news(notification_id: int, action: str, request: Request, db: Session =
             flash(request, "Kept on hold. The person sees nothing yet.")
         item.reviewed_by = who
         db.commit()
+        if action == "release":
+            from app.services.email_updates import send_notification_email
+
+            send_notification_email(db, item)
         log_event(db, stage="news_released" if action == "release" else "news_held",
                   detail=f"{who}: {detail.get('display_name')} - {detail.get('meaning', '')}",
                   case_id=str(item.user_id), human_decision=True)
