@@ -147,6 +147,348 @@
     }
    ],
    "page_text": "Skip to main content An official website of the United States government Here's how you know Here's how you know Official websites use .gov A .gov website belongs to an official government organization in the United States. Secure .gov websites use HTTPS A lock ( ) or https:// means you’ve safely connected to the .gov website. Share sensitive information only on official, secure websites. Home Close Search 1-844-USAGOV1 Government benefits Food assistance Food stamps (SNAP benefits) Food assistance programs for older adults Food assistance with the WIC program Get emergency food assistance School meals and food programs for children Food assistance for Native Americans Visit vote.gov to learn how to register to vote or to update your registration. Español Menu Call us at 1-844-USAGOV1 Search All topics and services The U.S. and its government Government benefits Immigration and U.S. citizenship Money and credit Travel Voting and elections Home Government benefits Food assistance Food stamps (SNAP benefits) Government benefits Find government benefits and financial help Food assistance current page Food stamps (SNAP benefits) Food assistance programs for older adults Food assistance with the WIC program Get emergency food assistance School meals and food programs for children Food assistance for Native Americans Health insurance Housing help Help with utility bills Welfare and financial assistance Social Security Government checks and payments State social service agencies Government death benefits Report incorrect benefit payments Government grants and loans How to apply for food stamps (SNAP benefits) and check your balance Known previously as \"food stamps,\" the Supplemental Nutrition Assistance Program (SNAP) can help you pay for food if you have a low income. Learn if you are eligible for SNAP and how to apply Find your SNAP office to apply Each month, SNAP benefits are added to an Electronic Benefits Transfer (EBT) card to use when you shop for food. To be eligible for SNAP benefits, you must meet your state’s requirements. This includes taking into account income limits and the money you have in your bank to decide if you qualify for SNAP. To apply for SNAP, contact your state or local SNAP office. Depending on your state, you may be able to submit a food stamp application online, in person, by mail, or by fax. You may need to take part in an interview before being approved for SNAP benefits. Check your SNAP balance Every state issues SNAP benefits on an EBT card. To check how much money is left on your EBT card: Check your receipt from the store where you made a purchase using your SNAP benefits. Many stores will print your balance on your receipts. Find out if your state offers a mobile app you can use to manage your benefits. Many allow you to check your balance. Find your SNAP office to check your benefits. Image Find more government programs that can help during tough financial times. Facing financial hardship LAST UPDATED: December 23, 2025 SHARE THIS PAGE: Have a question? Ask a real person any government-related question for free. They will get you the answer or let you know where to find it. Call USAGov Chat with USAGov Top Government information All topics and services Directory of U.S. government agencies and departments Branches of government About us About USAGov Report a website issue Website usage data For federal agencies Partner with us Read our blog USAGov Contact Center Ask USA.gov a question at 1-844-USAGOV1 (1-844-872-4681) USAGov is the official guide to government information and services An official website of the U.S. General Services Administration This website complies with Executive Order 14224 . English is the official language of the U.S. Government, and the English-language version of this website is the authoritative source for all federal information contained herein. Accessibility policy Privacy and security policies FOIA requests"
+  },
+  {
+   "url": "https://www.gov.uk/attendance-allowance/eligibility",
+   "title": "Attendance Allowance",
+   "provider": "Department for Work and Pensions",
+   "country": "GB",
+   "domain": "health",
+   "summary": "A UK disability benefit for people who have reached State Pension age and need help with personal care. This screen checks disability only; State Pension age and care needs still apply.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "disability",
+     "op": "is_true",
+     "source_quote": "you have a physical disability (including sensory disability, for example blindness), a mental disability (including learning difficulties), or a health condition",
+     "plain": "You must have a disability or health condition."
+    }
+   ],
+   "page_text": "you have a physical disability (including sensory disability, for example blindness), a mental disability (including learning difficulties), or a health condition"
+  },
+  {
+   "url": "https://www.gov.uk/pension-credit/eligibility",
+   "title": "Pension Credit",
+   "provider": "Department for Work and Pensions",
+   "country": "GB",
+   "domain": "income",
+   "summary": "A means-tested top-up for people who have reached State Pension age and live in England, Scotland or Wales. This screen checks low income; age and residence rules still apply.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "low_income",
+     "op": "is_true",
+     "source_quote": "Your income is calculated.",
+     "plain": "Your income is assessed to work out whether you may qualify."
+    }
+   ],
+   "page_text": "Your income is calculated."
+  },
+  {
+   "url": "https://www.gov.uk/employment-support-allowance/eligibility",
+   "title": "Employment and Support Allowance (ESA)",
+   "provider": "Department for Work and Pensions",
+   "country": "GB",
+   "domain": "work",
+   "summary": "For people below State Pension age whose disability or health condition affects how much they can work. This screen does not check National Insurance contribution rules.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "disability",
+     "op": "is_true",
+     "source_quote": "if you?re under State Pension age and you have a disability or health condition that affects how much you can work.",
+     "plain": "Your health condition must affect how much you can work."
+    }
+   ],
+   "page_text": "if you?re under State Pension age and you have a disability or health condition that affects how much you can work."
+  },
+  {
+   "url": "https://www.gov.uk/housing-benefit/eligibility",
+   "title": "Housing Benefit",
+   "provider": "Department for Work and Pensions",
+   "country": "GB",
+   "domain": "housing",
+   "summary": "Help with rent for people on a low income. New claims are generally limited to people at State Pension age or in certain supported, sheltered or temporary accommodation.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "low_income",
+     "op": "is_true",
+     "source_quote": "Housing Benefit can help you pay your rent if you?re unemployed, on a low income or claiming benefits.",
+     "plain": "You may need to be on a low income."
+    }
+   ],
+   "page_text": "Housing Benefit can help you pay your rent if you?re unemployed, on a low income or claiming benefits."
+  },
+  {
+   "url": "https://www.gov.uk/student-finance/who-qualifies",
+   "title": "Student finance (England)",
+   "provider": "Student Finance England",
+   "country": "GB",
+   "domain": "education",
+   "summary": "Student finance for eligible courses in England. This screen checks student status and higher education only; residency, course, age and previous-study rules also apply.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "student",
+     "op": "is_true",
+     "source_quote": "You may be able to get student finance if you meet the eligibility criteria.",
+     "plain": "You must meet the student finance eligibility rules."
+    },
+    {
+     "id": "c2",
+     "attr": "education_level",
+     "op": "eq",
+     "source_quote": "Your course",
+     "plain": "You must be taking an eligible higher education course.",
+     "value": "tertiary"
+    }
+   ],
+   "page_text": "You may be able to get student finance if you meet the eligibility criteria. Your course"
+  },
+  {
+   "url": "https://www.servicesaustralia.gov.au/who-can-get-jobseeker-payment",
+   "title": "JobSeeker Payment",
+   "provider": "Services Australia",
+   "country": "AU",
+   "domain": "work",
+   "summary": "Income support for eligible people who are unemployed and looking for work. This screen does not check residence, income and assets tests, or all age rules.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "unemployed",
+     "op": "is_true",
+     "source_quote": "you?re unemployed and looking for work",
+     "plain": "You must be unemployed and looking for work."
+    }
+   ],
+   "page_text": "you?re unemployed and looking for work"
+  },
+  {
+   "url": "https://www.servicesaustralia.gov.au/who-can-get-youth-allowance-for-students-and-apprentices",
+   "title": "Youth Allowance for students and apprentices",
+   "provider": "Services Australia",
+   "country": "AU",
+   "domain": "education",
+   "summary": "For eligible students aged 18 to 24 or full-time apprentices aged 16 to 24. This screen checks student status and age; course, residence, income and assets rules also apply.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "student",
+     "op": "is_true",
+     "source_quote": "18 to 24 and studying full time",
+     "plain": "You must be a student."
+    },
+    {
+     "id": "c2",
+     "attr": "age",
+     "op": "between",
+     "source_quote": "18 to 24 and studying full time",
+     "plain": "You must be aged 18 to 24.",
+     "value": [
+      18,
+      24
+     ]
+    }
+   ],
+   "page_text": "18 to 24 and studying full time 18 to 24 and studying full time"
+  },
+  {
+   "url": "https://www.servicesaustralia.gov.au/who-can-get-disability-support-pension",
+   "title": "Disability Support Pension",
+   "provider": "Services Australia",
+   "country": "AU",
+   "domain": "health",
+   "summary": "Support for people whose disability meets Australia?s medical rules. This screen only checks self-reported disability; medical evidence, residence, age, income and assets rules also apply.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "disability",
+     "op": "is_true",
+     "source_quote": "Medical rules help us assess how your condition affects you.",
+     "plain": "Your condition must meet the official medical rules."
+    }
+   ],
+   "page_text": "Medical rules help us assess how your condition affects you."
+  },
+  {
+   "url": "https://www.canada.ca/en/services/benefits/publicpensions/old-age-security/eligibility.html",
+   "title": "Old Age Security (OAS)",
+   "provider": "Employment and Social Development Canada",
+   "country": "CA",
+   "domain": "income",
+   "summary": "A pension generally available from age 65. This screen checks age only; legal status, Canadian residence history and income rules may affect eligibility.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "age",
+     "op": "gte",
+     "source_quote": "You must be 65 years or older to receive the Old Age Security (OAS) pension.",
+     "plain": "You must be at least 65 years old.",
+     "value": 65
+    }
+   ],
+   "page_text": "You must be 65 years or older to receive the Old Age Security (OAS) pension."
+  },
+  {
+   "url": "https://www.canada.ca/en/services/benefits/ei/ei-regular-benefit/eligibility.html",
+   "title": "Employment Insurance (EI) regular benefits",
+   "provider": "Employment and Social Development Canada",
+   "country": "CA",
+   "domain": "work",
+   "summary": "For people who lost work through no fault of their own and are ready and looking for work. This screen checks unemployment only; insured hours and other EI rules also apply.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "unemployed",
+     "op": "is_true",
+     "source_quote": "have been without work and without pay for at least 7 consecutive days",
+     "plain": "You must be out of work."
+    }
+   ],
+   "page_text": "have been without work and without pay for at least 7 consecutive days"
+  },
+  {
+   "url": "https://www.ssa.gov/ssi/eligibility",
+   "title": "Supplemental Security Income (SSI)",
+   "provider": "Social Security Administration",
+   "country": "US",
+   "domain": "income",
+   "summary": "SSI is for people with limited income and resources who are age 65 or older, blind, or disabled. This screen checks low income only; age-or-disability and resource rules still apply.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "low_income",
+     "op": "is_true",
+     "source_quote": "little or no income and resources",
+     "plain": "You must have little or no income."
+    }
+   ],
+   "page_text": "little or no income and resources"
+  },
+  {
+   "url": "https://studentaid.gov/understand-aid/types/grants/pell",
+   "title": "Federal Pell Grant",
+   "provider": "Federal Student Aid",
+   "country": "US",
+   "domain": "education",
+   "summary": "Need-based federal grant for eligible undergraduate students. This screen checks student, undergraduate and low-income answers; financial need, school and other federal rules still apply.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "student",
+     "op": "is_true",
+     "source_quote": "Federal Pell Grants usually are awarded only to undergraduate students who display exceptional financial need and have not earned a bachelor's, graduate, or professional degree.",
+     "plain": "You must be a student."
+    },
+    {
+     "id": "c2",
+     "attr": "education_level",
+     "op": "eq",
+     "source_quote": "Federal Pell Grants usually are awarded only to undergraduate students who display exceptional financial need and have not earned a bachelor's, graduate, or professional degree.",
+     "plain": "You must be an undergraduate student.",
+     "value": "tertiary"
+    },
+    {
+     "id": "c3",
+     "attr": "low_income",
+     "op": "is_true",
+     "source_quote": "Federal Pell Grants usually are awarded only to undergraduate students who display exceptional financial need and have not earned a bachelor's, graduate, or professional degree.",
+     "plain": "You must demonstrate financial need."
+    }
+   ],
+   "page_text": "Federal Pell Grants usually are awarded only to undergraduate students who display exceptional financial need and have not earned a bachelor's, graduate, or professional degree. Federal Pell Grants usually are awarded only to undergraduate students who display exceptional financial need and have not earned a bachelor's, graduate, or professional degree. Federal Pell Grants usually are awarded only to undergraduate students who display exceptional financial need and have not earned a bachelor's, graduate, or professional degree."
+  },
+  {
+   "url": "https://www.bisp.gov.pk/Detail/YTgzNjkxM2YtN2ViMC00MjA5LWI0MDMtNzM4ZWJmMGVlNzc5",
+   "title": "Benazir Kafaalat (BISP)",
+   "provider": "Benazir Income Support Programme",
+   "country": "PK",
+   "domain": "income",
+   "summary": "Cash support for eligible low-income households selected through the NSER household survey. The form cannot check the household score, registration or other programme rules.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "low_income",
+     "op": "is_true",
+     "source_quote": "Beneficiaries of ?Benazir Kafaalat Programme? are identified/selected through scientific mode of Proxy Means Test (PMT) through National Socio Economic Registry (NSER) survey.",
+     "plain": "Your household must meet the programme?s low-income assessment."
+    }
+   ],
+   "page_text": "Beneficiaries of ?Benazir Kafaalat Programme? are identified/selected through scientific mode of Proxy Means Test (PMT) through National Socio Economic Registry (NSER) survey."
+  },
+  {
+   "url": "https://www.peef.org.pk/outreach-scholarships",
+   "title": "PEEF Outreach Scholarships",
+   "provider": "Punjab Educational Endowment Fund (PEEF)",
+   "country": "PK",
+   "domain": "education",
+   "summary": "Scholarships for talented students with financial need. Eligibility varies by scholarship level and year; check the official page for current marks, school, domicile and application rules.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "student",
+     "op": "is_true",
+     "source_quote": "providing Scholarships at the doorstep of talented students of Punjab and other provinces, AJK, FATA, Gilgit Baltistan and ICT",
+     "plain": "You must be applying as a student."
+    },
+    {
+     "id": "c2",
+     "attr": "low_income",
+     "op": "is_true",
+     "source_quote": "providing opportunities to the talented but needy students to fulfill their dreams and aspirations",
+     "plain": "PEEF scholarships are intended for students with financial need."
+    }
+   ],
+   "page_text": "providing Scholarships at the doorstep of talented students of Punjab and other provinces, AJK, FATA, Gilgit Baltistan and ICT providing opportunities to the talented but needy students to fulfill their dreams and aspirations"
+  },
+  {
+   "url": "https://student.peef.org.pk/specialquotaRegistration/",
+   "title": "PEEF Special Quota Scholarship",
+   "provider": "Punjab Educational Endowment Fund (PEEF)",
+   "country": "PK",
+   "domain": "education",
+   "summary": "PEEF?s special quota includes students with disabilities. The 2025?26 application page lists cycle-specific criteria; check the official site for current application status and rules.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "disability",
+     "op": "is_true",
+     "source_quote": "????? (?????) ????? ? ??????",
+     "plain": "This quota includes students with disabilities."
+    }
+   ],
+   "page_text": "????? (?????) ????? ? ?????? Special Quota Scholarship 2025 - 2026"
   }
  ]
 }
