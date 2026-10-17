@@ -1,5 +1,5 @@
 ﻿{
-  "name": "RightPath W1 Source Watcher",
+  "name": "ENTITLE W1 Source Watcher",
   "nodes": [
     {
       "parameters": {
@@ -16,7 +16,7 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "rightpath-check-now",
+        "path": "entitle-check-now",
         "responseMode": "onReceived",
         "options": {}
       },
@@ -25,16 +25,16 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [0, 220],
-      "webhookId": "rightpath-check-now"
+      "webhookId": "entitle-check-now"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ ($env.RIGHTPATH_BASE_URL || 'http://127.0.0.1:8000') + '/api/internal/check-sources?auto_ingest=true' }}",
+        "url": "={{ ($env.ENTITLE_BASE_URL || 'http://127.0.0.1:8000') + '/api/internal/check-sources?auto_ingest=true' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-rightpath-secret", "value": "={{ $env.RIGHTPATH_SHARED_SECRET }}" }
+            { "name": "x-entitle-secret", "value": "={{ $env.ENTITLE_SHARED_SECRET }}" }
           ]
         },
         "options": {}
@@ -57,5 +57,5 @@
   "active": false,
   "settings": { "executionOrder": "v1" },
   "meta": { "templateCredsSetupCompleted": true },
-  "tags": [{ "name": "rightpath" }]
+  "tags": [{ "name": "entitle" }]
 }

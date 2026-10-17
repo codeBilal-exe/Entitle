@@ -1,7 +1,7 @@
 """UI smoke: empty sign-in, roles, and the citizen home."""
 
 
-def _login(client, email="admin@rightpath.local", password="test-admin-pass"):
+def _login(client, email="admin@entitle.local", password="test-admin-pass"):
     return client.post(
         "/login",
         data={"email": email, "password": password, "next_path": "/"},
@@ -127,7 +127,7 @@ def test_application_page_does_not_send_citizens_to_admin_timeline(api_client):
 
 
 def test_premade_citizen_has_a_filled_profile(api_client):
-    login = _login(api_client, "citizen@rightpath.local", "test-citizen")
+    login = _login(api_client, "citizen@entitle.local", "test-citizen")
     assert login.status_code == 303
     home = api_client.get("/")
     assert home.status_code == 200
@@ -145,7 +145,7 @@ def test_premade_citizen_has_a_filled_profile(api_client):
 
 
 def test_staff_desk_and_curator(api_client):
-    _login(api_client, "staff.one@rightpath.local", "test-staff-1")
+    _login(api_client, "staff.one@entitle.local", "test-staff-1")
     home = api_client.get("/")
     assert home.status_code == 200
     assert "Desk" in home.text

@@ -32,12 +32,12 @@ def explain_result(program_title: str, evaluation: EvaluationResult) -> str:
     if evaluation.status == Status.ELIGIBLE:
         return (
             f"You meet every published condition for {program_title}. "
-            "Anything sent outside RightPath still needs your approval."
+            "Anything sent outside ENTITLE still needs your approval."
         )
     if evaluation.status == Status.LIKELY:
         missing = ", ".join(attr_label(attr) for attr in evaluation.unknown_attributes) or "another answer"
         return (
-            f"You may qualify for {program_title}. RightPath still needs {missing}. "
+            f"You may qualify for {program_title}. ENTITLE still needs {missing}. "
             "No condition has failed yet."
         )
     return (

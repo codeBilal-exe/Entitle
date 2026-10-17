@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "macros.html" import human_stops, status_badge %}
-{% block title %}{% if user.role == "citizen" %}Programmes{% else %}Desk{% endif %} — RightPath{% endblock %}
+{% block title %}{% if user.role == "citizen" %}Programmes{% else %}Desk{% endif %} — ENTITLE{% endblock %}
 {% block body_class %}{% if user.role == "citizen" %} page-programmes{% else %} page-desk{% endif %}{% endblock %}
 {% block content %}
   {% if user.role == "citizen" %}
@@ -31,7 +31,7 @@
     </section>
 
     <section class="assist" aria-labelledby="assist-heading">
-      <h2 id="assist-heading">Tell RightPath your situation</h2>
+      <h2 id="assist-heading">Tell ENTITLE your situation</h2>
       <p class="assist-note">Groq reads the sentence. The rule engine decides what matches. A packet is sent only after you approve it.</p>
       <form method="post" action="/assistant" class="assist-form">
         <label class="visually-hidden" for="situation">Your situation</label>

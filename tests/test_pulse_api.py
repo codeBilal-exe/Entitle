@@ -2,7 +2,7 @@
 
 import json
 
-SECRET = {"x-rightpath-secret": "dev-shared-secret"}
+SECRET = {"x-entitle-secret": "dev-shared-secret"}
 
 NOTICE = (
     "This programme supports persons with disabilities aged between 18 and 35 years "
@@ -77,7 +77,7 @@ def test_text_change_holds_a_loss_for_staff(api_client):
     approved = api_client.post(
         "/api/internal/approve",
         headers=SECRET,
-        json={"job_id": ingested["ingestion_job_id"], "reviewed_by": "staff.one@rightpath.local"},
+        json={"job_id": ingested["ingestion_job_id"], "reviewed_by": "staff.one@entitle.local"},
     ).json()
     assert approved["ok"] is True
     hina = next(row for row in approved["routed"] if row["display_name"] == "Hina Khan")

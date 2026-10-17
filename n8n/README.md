@@ -1,4 +1,4 @@
-﻿# n8n workflows for RightPath
+﻿# n8n workflows for ENTITLE
 
 Import these JSON files into your Alternate Clouds n8n service after Core is reachable.
 
@@ -12,8 +12,8 @@ Import these JSON files into your Alternate Clouds n8n service after Core is rea
 
 Set on the n8n service (and reference in nodes):
 
-- `RIGHTPATH_BASE_URL` — public Core URL, e.g. `https://your-core-app.alternatefutures.ai`
-- `RIGHTPATH_SHARED_SECRET` — same value as Core `N8N_SHARED_SECRET`
+- `ENTITLE_BASE_URL` — public Core URL, e.g. `https://your-core-app.alternatefutures.ai`
+- `ENTITLE_SHARED_SECRET` — same value as Core `N8N_SHARED_SECRET`
 - Platform required: `N8N_ENCRYPTION_KEY`, `WEBHOOK_URL`
 
 ## Auth
@@ -21,7 +21,7 @@ Set on the n8n service (and reference in nodes):
 Every Core call sends header:
 
 ```
-x-rightpath-secret: <N8N_SHARED_SECRET>
+x-entitle-secret: <N8N_SHARED_SECRET>
 ```
 
 n8n must pass **IDs only** (job_id, application_id). Never profiles or documents.
@@ -32,7 +32,7 @@ Core already runs a background watcher (`ENABLE_SCHEDULER=true`) and exposes the
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/internal/check-sources?auto_ingest=true ^
-  -H "x-rightpath-secret: dev-shared-secret"
+  -H "x-entitle-secret: dev-shared-secret"
 ```
 
 The UI **Check sources now** / **REPLAY tighten** buttons use the same Pulse path.

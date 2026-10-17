@@ -38,7 +38,7 @@ from app.services.scheduler import start_scheduler, stop_scheduler
 from app.services.timeline import log_event
 
 settings = get_settings()
-app = FastAPI(title="RightPath", version="0.5.0")
+app = FastAPI(title="ENTITLE", version="0.5.0")
 mount_session(app, settings.secret_key)
 app.include_router(internal_router)
 
@@ -192,7 +192,7 @@ def _optional_bool(raw: str) -> bool | None:
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "rightpath-core"}
+    return {"status": "ok", "service": "entitle-core"}
 
 
 @app.get("/", response_class=HTMLResponse)

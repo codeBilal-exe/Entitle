@@ -16,7 +16,7 @@ def mount_session(app, secret_key: str) -> None:
     app.add_middleware(
         SessionMiddleware,
         secret_key=secret_key,
-        session_cookie="rightpath_session",
+        session_cookie="entitle_session",
         same_site="lax",
         https_only=False,
     )

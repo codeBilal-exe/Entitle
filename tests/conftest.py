@@ -7,12 +7,12 @@ from pathlib import Path
 
 import pytest
 
-TEST_DB = Path("data/test_rightpath.db")
+TEST_DB = Path("data/test_entitle.db")
 
 
 @pytest.fixture()
 def api_client(monkeypatch):
-    """Fresh app + SQLite file per test (safe while uvicorn uses rightpath.db)."""
+    """Fresh app + SQLite file per test (safe while uvicorn uses entitle.db)."""
     TEST_DB.parent.mkdir(exist_ok=True)
     if TEST_DB.exists():
         try:
@@ -24,13 +24,13 @@ def api_client(monkeypatch):
     monkeypatch.setenv("ENABLE_SCHEDULER", "false")
     monkeypatch.setenv("N8N_SHARED_SECRET", "dev-shared-secret")
     monkeypatch.setenv("FETCH_REMOTE", "false")
-    monkeypatch.setenv("ADMIN_EMAIL", "admin@rightpath.local")
+    monkeypatch.setenv("ADMIN_EMAIL", "admin@entitle.local")
     monkeypatch.setenv("ADMIN_PASSWORD", "test-admin-pass")
-    monkeypatch.setenv("STAFF_ONE_EMAIL", "staff.one@rightpath.local")
+    monkeypatch.setenv("STAFF_ONE_EMAIL", "staff.one@entitle.local")
     monkeypatch.setenv("STAFF_ONE_PASSWORD", "test-staff-1")
-    monkeypatch.setenv("STAFF_TWO_EMAIL", "staff.two@rightpath.local")
+    monkeypatch.setenv("STAFF_TWO_EMAIL", "staff.two@entitle.local")
     monkeypatch.setenv("STAFF_TWO_PASSWORD", "test-staff-2")
-    monkeypatch.setenv("CITIZEN_EMAIL", "citizen@rightpath.local")
+    monkeypatch.setenv("CITIZEN_EMAIL", "citizen@entitle.local")
     monkeypatch.setenv("CITIZEN_PASSWORD", "test-citizen")
     monkeypatch.setenv("CITIZEN_DISPLAY_NAME", "Hina Khan")
     monkeypatch.setenv("GROQ_API_KEY", "")

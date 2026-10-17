@@ -22,7 +22,8 @@ from app.models import (
 )
 from app.security import hash_password
 
-# Removed from older builds. Purged on startup so they cannot sign in.
+# Retired addresses from earlier builds and the RightPath name.
+# Kept so startup still deletes those accounts.
 LEGACY_DEMO_EMAILS = (
     "amina@demo.rightpath",
     "bilal@demo.rightpath",
@@ -30,6 +31,9 @@ LEGACY_DEMO_EMAILS = (
     "omar@demo.rightpath",
     "fatima@demo.rightpath",
     "admin@demo.rightpath",
+    "admin@rightpath.local",
+    "staff.one@rightpath.local",
+    "staff.two@rightpath.local",
 )
 
 # Official public pages. Rules stay empty until a fetched page yields a verbatim quote
@@ -356,7 +360,7 @@ def ensure_demo_citizen(db: Session) -> None:
 def ensure_demo_approved_rules(db: Session) -> None:
     """Install a few person-approved quoted rules so the demo citizen can apply."""
     settings = get_settings()
-    approver = settings.admin_email.strip().lower() or "admin@rightpath.local"
+    approver = settings.admin_email.strip().lower() or "admin@entitle.local"
     now = utcnow()
     for program_id, pack in DEMO_APPROVED.items():
         program = db.get(Program, program_id)

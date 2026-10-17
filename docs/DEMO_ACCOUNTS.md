@@ -2,7 +2,7 @@
 
 Passwords come from `.env` (see `.env.example`). They are **not** listed on the sign-in page.
 
-On every app start, RightPath:
+On every app start, ENTITLE:
 
 1. Deletes all citizen accounts and their profiles / applications / alerts
 2. Recreates staff and admin from the environment
@@ -13,7 +13,7 @@ On every app start, RightPath:
 | Field | Value |
 |---|---|
 | Name | Hina Khan |
-| Email | `citizen@rightpath.local` |
+| Email | `citizen@entitle.local` |
 | Password | `demo-citizen` (or `CITIZEN_PASSWORD` in `.env`) |
 | Profile | Age 22, university/college, low income, alerts on |
 
@@ -29,9 +29,9 @@ Use those to show **Prepare an application** → review packet (not sent yet).
 
 | Role | Email | Password (default in `.env`) |
 |---|---|---|
-| Admin | `admin@rightpath.local` | `demo-admin` |
-| Staff | `staff.one@rightpath.local` | `demo-staff` |
-| Staff (spare) | `staff.two@rightpath.local` | `demo-staff-2` |
+| Admin | `admin@entitle.local` | `demo-admin` |
+| Staff | `staff.one@entitle.local` | `demo-staff` |
+| Staff (spare) | `staff.two@entitle.local` | `demo-staff-2` |
 
 - **Staff** — review drafts (Rule changes), release or hold bad news (Reviews)
 - **Admin** — same as staff, plus edit source URLs, toggle sending, open Activity

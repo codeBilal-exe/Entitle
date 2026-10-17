@@ -14,11 +14,11 @@ def send_application_email(payload: dict[str, Any], recipient: str) -> None:
 
     fields = payload.get("fields") or {}
     msg = EmailMessage()
-    msg["Subject"] = f"RightPath application packet — {payload.get('program_id')}"
+    msg["Subject"] = f"ENTITLE application packet — {payload.get('program_id')}"
     msg["From"] = settings.mail_from or settings.mail_user
     msg["To"] = recipient
     body_lines = [
-        "This message was sent by RightPath after applicant consent.",
+        "This message was sent by ENTITLE after applicant consent.",
         "",
         f"Programme: {payload.get('program_id')}",
         "",

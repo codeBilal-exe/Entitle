@@ -6,7 +6,7 @@ Accounts: see [DEMO_ACCOUNTS.md](DEMO_ACCOUNTS.md).
 
 ## 1. Citizen — what matches you (1–2 min)
 
-1. Open the app → **Sign in** as `citizen@rightpath.local` / `demo-citizen`
+1. Open the app → **Sign in** as `citizen@entitle.local` / `demo-citizen`
 2. Land on **Programmes** — profile is already filled (age 22, university, low income)
 3. Filter **For you → Eligible** — she should match at least:
    - HEC need-based scholarships
@@ -18,7 +18,7 @@ Accounts: see [DEMO_ACCOUNTS.md](DEMO_ACCOUNTS.md).
 
 ## 2. Staff — approve a rule change (2–3 min)
 
-1. Sign out → sign in as `staff.one@rightpath.local` / `demo-staff`
+1. Sign out → sign in as `staff.one@entitle.local` / `demo-staff`
 2. **Desk** — sources watched, drafts waiting, alerts held
 3. **Rule changes** → **Check sources now**
 4. If a draft appears → open it → show **Quote check** (code blocks missing quotes)
@@ -38,10 +38,10 @@ Accounts: see [DEMO_ACCOUNTS.md](DEMO_ACCOUNTS.md).
 
 ## 5. Admin — oversight (30 sec, optional)
 
-1. Sign in as `admin@rightpath.local` / `demo-admin`
+1. Sign in as `admin@entitle.local` / `demo-admin`
 2. **Activity** — trail of human decisions
 3. Under **Rule changes**, show the **Sending** switch (leave off unless mail is configured)
 
 ## One-line pitch
 
-> RightPath watches official notices, drafts rule updates from quotes, and stops for a person before rules go live, before bad news is released, and before any packet is sent.
+> ENTITLE watches official notices, drafts rule updates from quotes, and stops for a person before rules go live, before bad news is released, and before any packet is sent.

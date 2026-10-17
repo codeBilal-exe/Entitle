@@ -105,7 +105,7 @@ def test_staff_cannot_toggle_sending_or_open_a_profile(api_client):
     api_client.post(
         "/login",
         data={
-            "email": "staff.one@rightpath.local",
+            "email": "staff.one@entitle.local",
             "password": "test-staff-1",
             "next_path": "/",
         },
@@ -129,7 +129,7 @@ def test_admin_cannot_open_a_citizen_profile(api_client):
     api_client.post("/logout", follow_redirects=False)
     api_client.post(
         "/login",
-        data={"email": "admin@rightpath.local", "password": "test-admin-pass", "next_path": "/"},
+        data={"email": "admin@entitle.local", "password": "test-admin-pass", "next_path": "/"},
         follow_redirects=False,
     )
     assert api_client.get(f"/profiles/{owner_id}").status_code == 403

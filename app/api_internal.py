@@ -1,4 +1,4 @@
-"""ID-only hooks for n8n / automation. Auth: x-rightpath-secret header."""
+"""ID-only hooks for n8n / automation. Auth: x-entitle-secret header."""
 
 from __future__ import annotations
 
@@ -18,9 +18,9 @@ router = APIRouter(prefix="/api/internal", tags=["internal"])
 approval_gate = ApprovalGate()
 
 
-def require_secret(x_rightpath_secret: str = Header(default="")) -> None:
+def require_secret(x_entitle_secret: str = Header(default="")) -> None:
     settings = get_settings()
-    if x_rightpath_secret != settings.n8n_shared_secret:
+    if x_entitle_secret != settings.n8n_shared_secret:
         raise HTTPException(status_code=401, detail="unauthorized")
 
 
@@ -41,7 +41,7 @@ class SendBody(BaseModel):
 
 @router.get("/health")
 def health(_: None = Depends(require_secret)):
-    return {"ok": True, "service": "rightpath-core"}
+    return {"ok": True, "service": "entitle-core"}
 
 
 @router.post("/check-sources")

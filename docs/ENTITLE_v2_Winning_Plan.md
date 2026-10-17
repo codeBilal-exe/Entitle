@@ -1,10 +1,10 @@
-# RightPath product
+# ENTITLE product
 
 This is the product to build and show. Citizens sign up themselves. Rules come from official pages a person approves.
 
 ## What it is
 
-RightPath watches public programme notices. Code re-checks who is affected when a notice changes. A person approves a rule change. A person releases bad news. The applicant approves the exact packet. The model may draft and explain. It does not decide eligibility and it does not send on its own.
+ENTITLE watches public programme notices. Code re-checks who is affected when a notice changes. A person approves a rule change. A person releases bad news. The applicant approves the exact packet. The model may draft and explain. It does not decide eligibility and it does not send on its own.
 
 Say that in plain words on the sign-in page, the home page, and every approval step. The three human stops are screens with actions, not only a paragraph.
 
@@ -21,7 +21,7 @@ Enforce on the server. A second citizen gets 403 when they request the first cit
 
 ## Catalogue
 
-At least ten real official programmes, each with its official URL. No synthetic quota. No "demo sample" label. Quotes only from text RightPath fetched. Unreachable pages say so.
+At least ten real official programmes, each with its official URL. No synthetic quota. No "demo sample" label. Quotes only from text ENTITLE fetched. Unreachable pages say so.
 
 ## Alerts
 

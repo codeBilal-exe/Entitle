@@ -26,19 +26,19 @@ class Settings(BaseSettings):
     n8n_base_url: str = ""
     n8n_shared_secret: str = "dev-shared-secret"
     base_url: str = "http://127.0.0.1:8000"
-    admin_email: str = "admin@rightpath.local"
+    admin_email: str = "admin@entitle.local"
     admin_password: str = "change-me-admin"
-    staff_one_email: str = "staff.one@rightpath.local"
+    staff_one_email: str = "staff.one@entitle.local"
     staff_one_password: str = "change-me-staff-1"
-    staff_two_email: str = "staff.two@rightpath.local"
+    staff_two_email: str = "staff.two@entitle.local"
     staff_two_password: str = "change-me-staff-2"
-    citizen_email: str = "citizen@rightpath.local"
+    citizen_email: str = "citizen@entitle.local"
     citizen_password: str = "change-me-citizen"
     citizen_display_name: str = "Hina Khan"
     fetch_remote: bool = True
 
     port: int = 8000
-    database_url: str = "sqlite:///./data/rightpath.db"
+    database_url: str = "sqlite:///./data/entitle.db"
     replay_mode: bool = False
     enable_scheduler: bool = True
     watcher_interval_seconds: int = 120

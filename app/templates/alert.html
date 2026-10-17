@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Alert — RightPath{% endblock %}
+{% block title %}Alert — ENTITLE{% endblock %}
 {% block body_class %} page-alerts{% endblock %}
 {% block content %}
   {% set tone = "gain" if item.kind == "newly_eligible" else ("loss" if item.kind == "newly_not_eligible" else "deadline") %}

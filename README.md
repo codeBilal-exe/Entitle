@@ -1,6 +1,6 @@
-# RightPath
+# ENTITLE
 
-RightPath watches real public programme notices (scholarships, jobs, health cover, cash support). When a notice changes, code re-checks who is affected. A person approves anything that changes a rule or takes support away. The applicant approves anything sent out. The language model may draft and explain. It never decides eligibility and it never sends on its own.
+ENTITLE watches real public programme notices (scholarships, jobs, health cover, cash support). When a notice changes, code re-checks who is affected. A person approves anything that changes a rule or takes support away. The applicant approves anything sent out. The language model may draft and explain. It never decides eligibility and it never sends on its own.
 
 A person and a model work together. That shows up on the sign-in page, the home page, and every approval step.
 
@@ -22,7 +22,7 @@ These are roles on the account, not a view switch.
 
 Staff and admin see a name and the eligibility change when they review a loss. They cannot open or edit a citizen's private profile. A citizen cannot open staff or admin tools. Hiding a link is not the check — the server refuses the request.
 
-Passwords are hashed with bcrypt. Accounts, profiles, applications, and alerts live in the local SQLite file `data/rightpath.db`.
+Passwords are hashed with bcrypt. Accounts, profiles, applications, and alerts live in the local SQLite file `data/entitle.db`.
 
 ## Sign-in
 
@@ -36,11 +36,11 @@ Walkthrough script: `docs/DEMO_FLOW.md`.
 
 The catalogue is official public pages, including HEC scholarships, Benazir Income Support / Kafaalat, PEEF, NAVTTC, Sehat Sahulat, the Ministry of Human Rights, the Prime Minister's Youth Programme, Pakistan Bait-ul-Mal, and provincial literacy departments.
 
-A rule or quota is shown only as a verbatim quote from a page RightPath fetched, after a person approves the draft. If a number is not on that page, it is not shown. If a page cannot be read, the source is marked unreachable.
+A rule or quota is shown only as a verbatim quote from a page ENTITLE fetched, after a person approves the draft. If a number is not on that page, it is not shown. If a page cannot be read, the source is marked unreachable.
 
 ## Automation
 
-A timer re-reads sources. **Check sources now** does the same thing. On a real text change, RightPath drafts a rule update, runs the quote check, and leaves the draft for staff. After approval, stored profiles are re-checked. Someone who newly qualifies gets an alert. Someone who may lose support is held until staff release it. Deadline reminders keep running. The app keeps working if n8n is not running.
+A timer re-reads sources. **Check sources now** does the same thing. On a real text change, ENTITLE drafts a rule update, runs the quote check, and leaves the draft for staff. After approval, stored profiles are re-checked. Someone who newly qualifies gets an alert. Someone who may lose support is held until staff release it. Deadline reminders keep running. The app keeps working if n8n is not running.
 
 ## Alerts
 
@@ -81,17 +81,17 @@ Critical seams: `RuleEngine`, `QuoteGate`, `CaseImpact`, `ApprovalGate`, plus ro
 ## Docker
 
 ```bash
-docker build -t rightpath-core .
-docker run --rm -p 8000:8000 --env-file .env rightpath-core
+docker build -t entitle-core .
+docker run --rm -p 8000:8000 --env-file .env entitle-core
 ```
 
 ## Internal API
 
-Header: `x-rightpath-secret` (your `N8N_SHARED_SECRET`).
+Header: `x-entitle-secret` (your `N8N_SHARED_SECRET`).
 
 ```bash
 curl -X POST "http://127.0.0.1:8000/api/internal/check-sources?auto_ingest=true" ^
-  -H "x-rightpath-secret: dev-shared-secret"
+  -H "x-entitle-secret: dev-shared-secret"
 ```
 
 ## Layout

@@ -14,7 +14,7 @@ def build_manual_pack(application_id: str, payload: dict[str, Any]) -> Path:
     path = out_dir / f"{application_id}.zip"
 
     checklist = [
-        "RightPath manual pack (SAMPLE ONLY)",
+        "ENTITLE manual pack (SAMPLE ONLY)",
         f"Application: {application_id}",
         f"Programme: {payload.get('program_id')}",
         f"Recipient: {payload.get('to')}",

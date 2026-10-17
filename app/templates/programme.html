@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% from "macros.html" import page_intro %}
-{% block title %}{{ program.title }} — RightPath{% endblock %}
+{% block title %}{{ program.title }} — ENTITLE{% endblock %}
 {% block content %}
   {{ page_intro(program.title, program.provider) }}
 
   {% if source and source.status == "unreachable" %}
-    <div class="flash flash-err" role="status">This source is unreachable. RightPath is not showing a rule from a page it could not read.</div>
+    <div class="flash flash-err" role="status">This source is unreachable. ENTITLE is not showing a rule from a page it could not read.</div>
   {% elif not source or source.status == "not_checked" %}
     <div class="flash flash-ok" role="status">This source has not been read yet. No eligibility rule is shown until a fetched quote is approved.</div>
   {% endif %}
@@ -51,7 +51,7 @@
     </table>
     {% if quota %}
       <p class="quote">“{{ quota }}”</p>
-      <p class="hint">This sentence is on the page RightPath fetched. It is not a guessed quota.</p>
+      <p class="hint">This sentence is on the page ENTITLE fetched. It is not a guessed quota.</p>
     {% endif %}
     {% if excerpt %}
       <h3>Text from the page</h3>

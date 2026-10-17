@@ -35,7 +35,7 @@ def test_admin_can_turn_sending_off(api_client):
 
     api_client.post(
         "/login",
-        data={"email": "admin@rightpath.local", "password": "test-admin-pass", "next_path": "/"},
+        data={"email": "admin@entitle.local", "password": "test-admin-pass", "next_path": "/"},
         follow_redirects=False,
     )
     page = api_client.get("/curator")
@@ -51,6 +51,6 @@ def test_admin_can_turn_sending_off(api_client):
     set_send_enabled(True)
 
     gold = api_client.get(
-        "/api/internal/gold-set", headers={"x-rightpath-secret": "dev-shared-secret"}
+        "/api/internal/gold-set", headers={"x-entitle-secret": "dev-shared-secret"}
     ).json()
     assert gold["correct"] == 4

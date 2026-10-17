@@ -68,7 +68,7 @@ def _download(url: str) -> tuple[str, str]:
             url,
             timeout=8.0,
             follow_redirects=True,
-            headers={"User-Agent": "RightPath/0.5 (public notice watcher)"},
+            headers={"User-Agent": "ENTITLE/0.5 (public notice watcher)"},
         )
         response.raise_for_status()
         text = html_to_text(response.text)

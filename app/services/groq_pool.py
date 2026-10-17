@@ -10,7 +10,7 @@ import httpx
 
 from app.config import get_settings
 
-logger = logging.getLogger("rightpath.groq")
+logger = logging.getLogger("entitle.groq")
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 

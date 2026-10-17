@@ -84,7 +84,7 @@ def test_sentence_saves_profile_and_shows_the_approved_quote(api_client, monkeyp
         }
 
     monkeypatch.setattr("app.services.assistant._groq_json", fake)
-    _login(api_client, "citizen@rightpath.local", "test-citizen")
+    _login(api_client, "citizen@entitle.local", "test-citizen")
     sent = api_client.post(
         "/assistant",
         data={"sentence": SENTENCE},
@@ -100,14 +100,14 @@ def test_sentence_saves_profile_and_shows_the_approved_quote(api_client, monkeyp
     assert "CNIC" in home.text
     assert "2026-12-31" in home.text
     assert "Groq wrote this summary" in home.text
-    assert "Pakistan Bait-ul-Mal" not in home.text.split("Tell RightPath your situation")[-1].split("Programmes")[0]
+    assert "Pakistan Bait-ul-Mal" not in home.text.split("Tell ENTITLE your situation")[-1].split("Programmes")[0]
 
     from app.db import SessionLocal
     from app.models import Profile, User
 
     db = SessionLocal()
     try:
-        user = db.query(User).filter(User.email == "citizen@rightpath.local").one()
+        user = db.query(User).filter(User.email == "citizen@entitle.local").one()
         profile = db.query(Profile).filter(Profile.user_id == user.id).one()
         import json
 
@@ -122,7 +122,7 @@ def test_sentence_saves_profile_and_shows_the_approved_quote(api_client, monkeyp
 
 def test_prepare_sentence_drafts_a_packet_that_is_not_sent(api_client, monkeypatch):
     monkeypatch.setattr("app.services.assistant._groq_json", lambda system, user: None)
-    _login(api_client, "citizen@rightpath.local", "test-citizen")
+    _login(api_client, "citizen@entitle.local", "test-citizen")
     sent = api_client.post(
         "/assistant",
         data={
@@ -150,7 +150,7 @@ def test_prepare_sentence_drafts_a_packet_that_is_not_sent(api_client, monkeypat
 
     db = SessionLocal()
     try:
-        user = db.query(User).filter(User.email == "citizen@rightpath.local").one()
+        user = db.query(User).filter(User.email == "citizen@entitle.local").one()
         application = (
             db.query(Application).filter(Application.user_id == user.id).one()
         )
@@ -161,7 +161,7 @@ def test_prepare_sentence_drafts_a_packet_that_is_not_sent(api_client, monkeypat
 
 
 def test_staff_cannot_use_the_citizen_assistant(api_client):
-    _login(api_client, "staff.one@rightpath.local", "test-staff-1")
+    _login(api_client, "staff.one@entitle.local", "test-staff-1")
     sent = api_client.post(
         "/assistant",
         data={"sentence": SENTENCE},

@@ -1,6 +1,6 @@
 # Design
 
-RightPath is a person and a model working together. The model may draft and explain. A person decides. Say that in plain words on the sign-in page, the home page, and every approval step.
+ENTITLE is a person and a model working together. The model may draft and explain. A person decides. Say that in plain words on the sign-in page, the home page, and every approval step.
 
 ## One job per screen
 
@@ -30,7 +30,7 @@ Citizen, staff, and admin are stored on the account. There is no Citizen view / 
 
 ## Catalogue
 
-Programme names and official URLs. A quote appears only when it was on a page RightPath fetched. If the page cannot be read, the screen says the source is unreachable. Do not label the list as a demo sample.
+Programme names and official URLs. A quote appears only when it was on a page ENTITLE fetched. If the page cannot be read, the screen says the source is unreachable. Do not label the list as a demo sample.
 
 ## Alerts
 

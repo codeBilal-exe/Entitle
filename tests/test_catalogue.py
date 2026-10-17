@@ -37,7 +37,7 @@ def test_programmes_use_official_urls_and_no_invented_rules():
 def test_home_lists_real_programmes(api_client):
     api_client.post(
         "/login",
-        data={"email": "admin@rightpath.local", "password": "test-admin-pass", "next_path": "/"},
+        data={"email": "admin@entitle.local", "password": "test-admin-pass", "next_path": "/"},
         follow_redirects=False,
     )
     home = api_client.get("/")

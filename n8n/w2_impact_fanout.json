@@ -1,10 +1,10 @@
 ﻿{
-  "name": "RightPath W2 Impact Fan-out",
+  "name": "ENTITLE W2 Impact Fan-out",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "rightpath-approve",
+        "path": "entitle-approve",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -13,16 +13,16 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [0, 0],
-      "webhookId": "rightpath-approve"
+      "webhookId": "entitle-approve"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ ($env.RIGHTPATH_BASE_URL || 'http://127.0.0.1:8000') + '/api/internal/approve' }}",
+        "url": "={{ ($env.ENTITLE_BASE_URL || 'http://127.0.0.1:8000') + '/api/internal/approve' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-rightpath-secret", "value": "={{ $env.RIGHTPATH_SHARED_SECRET }}" },
+            { "name": "x-entitle-secret", "value": "={{ $env.ENTITLE_SHARED_SECRET }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },
@@ -60,5 +60,5 @@
   },
   "active": false,
   "settings": { "executionOrder": "v1" },
-  "tags": [{ "name": "rightpath" }]
+  "tags": [{ "name": "entitle" }]
 }

@@ -9,7 +9,7 @@ import httpx
 
 from app.config import get_settings
 
-logger = logging.getLogger("rightpath.n8n")
+logger = logging.getLogger("entitle.n8n")
 
 
 def notify(path: str, payload: dict[str, Any]) -> bool:
@@ -22,7 +22,7 @@ def notify(path: str, payload: dict[str, Any]) -> bool:
         response = httpx.post(
             url,
             json=payload,
-            headers={"x-rightpath-secret": settings.n8n_shared_secret},
+            headers={"x-entitle-secret": settings.n8n_shared_secret},
             timeout=8.0,
         )
         response.raise_for_status()
@@ -35,13 +35,13 @@ def notify(path: str, payload: dict[str, Any]) -> bool:
 def notify_approve(job_id: int, reviewed_by: str) -> bool:
     # Matches n8n/w2_impact_fanout.json webhook path when deployed.
     return notify(
-        "webhook/rightpath-approve",
+        "webhook/entitle-approve",
         {"job_id": job_id, "reviewed_by": reviewed_by},
     )
 
 
 def notify_send(application_id: str) -> bool:
     return notify(
-        "webhook/rightpath-send",
+        "webhook/entitle-send",
         {"application_id": application_id},
     )

@@ -11,7 +11,7 @@ from app.db import SessionLocal
 from app.services.deadlines import run_deadline_reminders
 from app.services.pulse import check_sources
 
-logger = logging.getLogger("rightpath.scheduler")
+logger = logging.getLogger("entitle.scheduler")
 _scheduler: BackgroundScheduler | None = None
 
 

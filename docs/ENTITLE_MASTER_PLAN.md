@@ -1,6 +1,6 @@
-# RightPath
+# ENTITLE
 
-RightPath watches real public programme notices. When the text changes, code re-checks stored profiles. A person approves a rule change. A person releases bad news. The applicant approves the exact packet. The language model may draft and explain. It never decides eligibility and it never sends on its own.
+ENTITLE watches real public programme notices. When the text changes, code re-checks stored profiles. A person approves a rule change. A person releases bad news. The applicant approves the exact packet. The language model may draft and explain. It never decides eligibility and it never sends on its own.
 
 This note replaces earlier plans that used premade citizens, a view switch, and a controllable demo notice.
 
@@ -16,7 +16,7 @@ The server enforces this on every page and action.
 
 ## Data
 
-Local SQLite at `data/rightpath.db`. Passwords are hashed with bcrypt. A signed-in citizen can read and update only their own profile, applications, and alerts. No browser localStorage for profiles. No shared in-memory profile store.
+Local SQLite at `data/entitle.db`. Passwords are hashed with bcrypt. A signed-in citizen can read and update only their own profile, applications, and alerts. No browser localStorage for profiles. No shared in-memory profile store.
 
 ## Sources
 
