@@ -1,38 +1,27 @@
-﻿# n8n workflows for ENTITLE
+﻿# n8n workflows for Entitle
 
-Import these JSON files into your Alternate Clouds n8n service after Core is reachable.
+Entitle runs on its own: a built-in watcher re-reads every official page on a timer. n8n is optional and adds outside triggers. It can start work, but it can never approve anything. Approval only happens on the Verification Desk, by a person.
 
-| File | Purpose |
+| File | What it does |
 |---|---|
-| `w1_source_watcher.json` | Cron + "check now" webhook → Core `/api/internal/check-sources` |
-| `w2_impact_fanout.json` | Webhook → Core `/api/internal/approve` (fan-out) |
-| `w3_approved_send.json` | Webhook → Core `/api/internal/send` (retries on fail) |
+| `w1_source_watcher.json` | Every 15 minutes, or when the `entitle-check-now` webhook is called, asks Entitle to re-read every watched page. A real rule change becomes a draft in the reviewer queue. |
+| `w2_programme_intake.json` | The `entitle-intake` webhook takes `{"url": "https://..."}`, runs the full Entitle pipeline on that page, then returns what is waiting for a reviewer. |
 
-## Environment in n8n
+## Setup
 
-Set on the n8n service (and reference in nodes):
+1. Import both JSON files into your n8n service.
+2. Set these variables on the n8n service:
+   - `ENTITLE_BASE_URL`: the public Entitle address, for example `https://entitle-app.alternatefutures.ai`
+   - `ENTITLE_SHARED_SECRET`: the same value as `N8N_SHARED_SECRET` on Entitle
+   - Required by n8n on Alternate Clouds: `N8N_ENCRYPTION_KEY` and `WEBHOOK_URL`
+3. Activate the workflows.
 
-- `ENTITLE_BASE_URL` — public Core URL, e.g. `https://your-core-app.alternatefutures.ai`
-- `ENTITLE_SHARED_SECRET` — same value as Core `N8N_SHARED_SECRET`
-- Platform required: `N8N_ENCRYPTION_KEY`, `WEBHOOK_URL`
+## The API n8n calls
 
-## Auth
+Every call sends the header `x-entitle-secret: <N8N_SHARED_SECRET>`. Only IDs and public URLs cross this API, never personal data.
 
-Every Core call sends header:
-
-```
-x-entitle-secret: <N8N_SHARED_SECRET>
-```
-
-n8n must pass **IDs only** (job_id, application_id). Never profiles or documents.
-
-## Local testing without n8n
-
-Core already runs a background watcher (`ENABLE_SCHEDULER=true`) and exposes the same hooks:
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/internal/check-sources?auto_ingest=true ^
-  -H "x-entitle-secret: dev-shared-secret"
-```
-
-The UI **Check sources now** / **REPLAY tighten** buttons use the same Pulse path.
+| Method and path | Purpose |
+|---|---|
+| `POST /api/internal/check-sources` | Re-read all watched pages |
+| `POST /api/internal/ingest` | Run the pipeline on `{"url": ...}` or on `{"program_id": ..., "notice_text": ...}` |
+| `GET /api/internal/queue` | Drafts and held bad news waiting for a person |

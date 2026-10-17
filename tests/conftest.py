@@ -1,76 +1,76 @@
-"""Isolate API tests from the developer's running uvicorn database."""
+"""Each test gets a fresh app on its own SQLite file, with no network and no AI key."""
 
 from __future__ import annotations
 
-import os
+import importlib
+import itertools
 from pathlib import Path
 
 import pytest
 
-TEST_DB = Path("data/test_entitle.db")
+_counter = itertools.count()
 
 
 @pytest.fixture()
-def api_client(monkeypatch):
-    """Fresh app + SQLite file per test (safe while uvicorn uses entitle.db)."""
-    TEST_DB.parent.mkdir(exist_ok=True)
-    if TEST_DB.exists():
-        try:
-            TEST_DB.unlink()
-        except PermissionError:
-            pass
-
-    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{TEST_DB.as_posix()}")
+def client(monkeypatch, tmp_path: Path):
+    db_file = tmp_path / f"test_{next(_counter)}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_file.as_posix()}")
     monkeypatch.setenv("ENABLE_SCHEDULER", "false")
-    monkeypatch.setenv("N8N_SHARED_SECRET", "dev-shared-secret")
     monkeypatch.setenv("FETCH_REMOTE", "false")
-    monkeypatch.setenv("ADMIN_EMAIL", "admin@entitle.local")
-    monkeypatch.setenv("ADMIN_PASSWORD", "test-admin-pass")
-    monkeypatch.setenv("STAFF_ONE_EMAIL", "staff.one@entitle.local")
-    monkeypatch.setenv("STAFF_ONE_PASSWORD", "test-staff-1")
-    monkeypatch.setenv("STAFF_TWO_EMAIL", "staff.two@entitle.local")
-    monkeypatch.setenv("STAFF_TWO_PASSWORD", "test-staff-2")
-    monkeypatch.setenv("CITIZEN_EMAIL", "citizen@entitle.local")
-    monkeypatch.setenv("CITIZEN_PASSWORD", "test-citizen")
-    monkeypatch.setenv("CITIZEN_DISPLAY_NAME", "Hina Khan")
+    monkeypatch.setenv("N8N_SHARED_SECRET", "test-secret")
+    monkeypatch.setenv("N8N_BASE_URL", "")
     monkeypatch.setenv("GROQ_API_KEY", "")
     monkeypatch.setenv("GROQ_API_KEYS", "")
+    monkeypatch.setenv("ADMIN_USERNAME", "admin")
+    monkeypatch.setenv("ADMIN_PASSWORD", "test-pass")
+    monkeypatch.setenv("ADMIN_NAME", "Rev")
+    monkeypatch.setenv("BASE_URL", "http://testserver")
 
-    # Rebuild settings + engine bound to the test DB.
     from app.config import get_settings
     from app.services.groq_pool import reset_groq_pool
 
     get_settings.cache_clear()
     reset_groq_pool()
+    from app import auth
+
+    auth._failures.clear()
 
     import app.db as dbmod
-    from app.db import Base
-    from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
-    connect_args = {"check_same_thread": False}
-    dbmod.engine = create_engine(
-        f"sqlite:///{TEST_DB.as_posix()}", connect_args=connect_args
-    )
-    dbmod.SessionLocal = sessionmaker(
-        bind=dbmod.engine, autoflush=False, autocommit=False
-    )
-    # Models must be imported so metadata includes every table before create_all.
-    import app.models  # noqa: F401
-
-    Base.metadata.drop_all(bind=dbmod.engine)
-    Base.metadata.create_all(bind=dbmod.engine)
-
-    # Re-import app after engine swap so startup uses SessionLocal above.
-    import importlib
+    dbmod.engine = dbmod._engine()
+    dbmod.SessionLocal = sessionmaker(bind=dbmod.engine, autoflush=False, autocommit=False)
     import app.main as mainmod
 
     importlib.reload(mainmod)
 
     from fastapi.testclient import TestClient
 
-    with TestClient(mainmod.app) as client:
-        yield client
-
+    with TestClient(mainmod.app) as test_client:
+        test_client.app_module = mainmod
+        yield test_client
+    dbmod.engine.dispose()
     get_settings.cache_clear()
     reset_groq_pool()
+
+
+def become(client, cookies: dict | None = None) -> None:
+    """Switch the browser: a fresh visitor, or someone whose cookies were saved earlier."""
+    client.cookies.clear()
+    for key, value in (cookies or {}).items():
+        client.cookies.set(key, value)
+
+
+def saved(client) -> dict:
+    return dict(client.cookies.items())
+
+
+def admin_sign_in(client, password: str = "test-pass"):
+    return client.post("/admin/login", data={"username": "admin", "password": password}, follow_redirects=False)
+
+
+def answer(client, name: str = "Sara Ahmed", **overrides):
+    form = {"name": name, "age": "22", "education_level": "tertiary", "country": "PK", "low_income": "yes",
+            "student": "yes", "consent": "1"}
+    form.update(overrides)
+    return client.post("/me/details", data=form, follow_redirects=False)

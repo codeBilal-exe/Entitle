@@ -1,0 +1,70 @@
+{
+  "name": "ENTITLE W2 Programme Intake",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "entitle-intake",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "hook-w2",
+      "name": "New programme link",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 100],
+      "webhookId": "entitle-intake"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.ENTITLE_BASE_URL || 'http://127.0.0.1:8000') + '/api/internal/ingest' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-entitle-secret", "value": "={{ $env.ENTITLE_SHARED_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ url: $json.body.url }) }}",
+        "options": { "timeout": 90000 }
+      },
+      "id": "http-ingest",
+      "name": "Run Entitle pipeline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 100]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ ($env.ENTITLE_BASE_URL || 'http://127.0.0.1:8000') + '/api/internal/queue' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-entitle-secret", "value": "={{ $env.ENTITLE_SHARED_SECRET }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-queue",
+      "name": "Read reviewer queue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [520, 100]
+    }
+  ],
+  "connections": {
+    "New programme link": {
+      "main": [[{ "node": "Run Entitle pipeline", "type": "main", "index": 0 }]]
+    },
+    "Run Entitle pipeline": {
+      "main": [[{ "node": "Read reviewer queue", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": [{ "name": "entitle" }]
+}

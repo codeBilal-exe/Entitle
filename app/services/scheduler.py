@@ -1,4 +1,4 @@
-"""In-process watcher so Pulse still runs if n8n is down."""
+"""In-process watcher, so pages are re-read even when n8n is not running."""
 
 from __future__ import annotations
 
@@ -7,67 +7,42 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.config import get_settings
-from app.db import SessionLocal
-from app.services.deadlines import run_deadline_reminders
-from app.services.pulse import check_sources
 
 logger = logging.getLogger("entitle.scheduler")
 _scheduler: BackgroundScheduler | None = None
 
 
 def _watch_job() -> None:
-    db = SessionLocal()
+    from app import db as dbmod
+    from app.services.pulse import check_sources
+
+    session = dbmod.SessionLocal()
     try:
-        result = check_sources(db, auto_ingest=True)
+        result = check_sources(session, auto_ingest=True, trigger="watcher")
         changed = sum(1 for s in result.get("sources", []) if s.get("changed"))
         if changed:
-            logger.info("watcher found %s changed source(s)", changed)
+            logger.info("watcher drafted %s rule change(s)", changed)
     except Exception:
         logger.exception("watcher job failed")
     finally:
-        db.close()
-
-
-def _deadline_job() -> None:
-    db = SessionLocal()
-    try:
-        result = run_deadline_reminders(db)
-        if result.get("created"):
-            logger.info("deadline reminders created=%s", result["created"])
-    except Exception:
-        logger.exception("deadline job failed")
-    finally:
-        db.close()
+        session.close()
 
 
 def start_scheduler() -> None:
     global _scheduler
     settings = get_settings()
-    if not settings.enable_scheduler:
-        logger.info("scheduler disabled")
-        return
-    if _scheduler and _scheduler.running:
+    if not settings.enable_scheduler or (_scheduler and _scheduler.running):
         return
     _scheduler = BackgroundScheduler(timezone="UTC")
     _scheduler.add_job(
         _watch_job,
         "interval",
-        seconds=max(30, settings.watcher_interval_seconds),
+        seconds=max(300, settings.watcher_interval_seconds),
         id="source_watcher",
         replace_existing=True,
     )
-    _scheduler.add_job(
-        _deadline_job,
-        "interval",
-        hours=1,
-        id="deadline_guardian",
-        replace_existing=True,
-    )
     _scheduler.start()
-    logger.info(
-        "source watcher every %ss; deadline guardian hourly",
-        settings.watcher_interval_seconds,
-    )
+    logger.info("watcher re-reads official pages every %ss", settings.watcher_interval_seconds)
 
 
 def stop_scheduler() -> None:

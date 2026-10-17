@@ -1,0 +1,152 @@
+{
+ "verified_on": "2026-10-17",
+ "programmes": [
+  {
+   "url": "https://www.hec.gov.pk/english/scholarshipsgrants/NBS/Pages/Eligibility-Criteria.aspx",
+   "title": "HEC Need-Based Scholarships",
+   "provider": "Higher Education Commission (HEC)",
+   "country": "PK",
+   "domain": "education",
+   "summary": "Students who need money can apply for undergraduate scholarships at public universities in Pakistan.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "education_level",
+     "op": "eq",
+     "source_quote": "study at the Undergraduate level in all disciplines",
+     "plain": "Must study at undergraduate level (tertiary education).",
+     "value": "tertiary"
+    },
+    {
+     "id": "c2",
+     "attr": "low_income",
+     "op": "is_true",
+     "source_quote": "The eligibility of a candidate is linked to his/her financial needs as assessed by the Institutional Scholarship Award Committee.",
+     "plain": "Must have financial need."
+    }
+   ],
+   "page_text": "Turn on more accessible mode Turn off more accessible mode Sign In Close Quick Links --> HEC HEC English Scholarships HEC Need Based Scholarships Eligibility Criteria Related Links --> Introduction Eligibility Criteria Currently selected Scholarship Award Process How To Apply Financial Support Downloads Freqently Asked Question Contact Us Eligibility Criteria Page Content ​Financial assistance & scholarships are available for study at the Undergraduate level in all disciplines at HEC-selected public sector Pakistani universities and degree-awarding institutions. Students need to compete for securing admission at the participating institution as per the admission policy of the institution and be enrolled in Undergraduate (4-5 years) programs. Students in financial need who are already enrolled in participating institutions are also eligible to apply. The eligibility of a candidate is linked to his/her financial needs as assessed by the Institutional Scholarship Award Committee. The financial background of the family of the applicant will be kept in view in this regard. The number of slots will be decided by the universities keeping in view the budget of the current year. Funding for slots will continue for the complete duration of the program. In case any students drop out, they will be replaced by other candidates on the waiting list of the current year. All disciplines will be kept open. The selected university will decide whether to include or exclude any discipline keeping in view its grant, program cost, and number of allocated slots, etc. I n the case of Medicine, Pharm-D and other five-year programs, funding will be made available for the complete program. C onsidering the allocated grant, the university may adjust the total number of scholarships to an extent in order to cover the university fee. I n addition to the university fee, every grantee will be paid Rs.6000/- stipend per month for the complete program. Those students who secure admission on self-finance are not eligible for HEC Need-Based Scholarship Program. Note: The complete application should be sent to relevant Financial Aid Offices where the applicant intends to secure admission. Page Image Go Sign Up --> Sign In"
+  },
+  {
+   "url": "https://www.gov.uk/universal-credit/eligibility",
+   "title": "Universal Credit",
+   "provider": "Department for Work and Pensions",
+   "country": "GB",
+   "domain": "income",
+   "summary": "You can get Universal Credit if you live in the UK, are at least 18, and are under State Pension age.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "country",
+     "op": "eq",
+     "source_quote": "live in the UK",
+     "plain": "must live in the UK",
+     "value": "GB"
+    },
+    {
+     "id": "c2",
+     "attr": "age",
+     "op": "gte",
+     "source_quote": "be aged 18 or over (there are some exceptions if you’re 16 to 17)",
+     "plain": "must be at least 18 years old",
+     "value": 18
+    }
+   ],
+   "page_text": "Cookies on GOV.UK We use some essential cookies to make this website work. We’d like to set additional cookies to understand how you use GOV.UK, remember your settings and improve government services. We also use cookies set by other sites to help us deliver content from their services. You have accepted additional cookies. You can change your cookie settings at any time. You have rejected additional cookies. You can change your cookie settings at any time. Accept additional cookies Reject additional cookies View cookies Hide cookie message Skip to main content Navigation menu Menu Menu Services and information Benefits Births, death, marriages and care Business and self-employed Childcare a\n...\nAccept additional cookies Reject additional cookies View cookies Hide cookie message Skip to main content Navigation menu Menu Menu Services and information Benefits Births, death, marriages and care Business and self-employed Childcare and parenting Citizenship and living in the UK Crime, justice and the law Disabled people Driving and transport Education and learning Employing people Environment and countryside Housing and local services Money and tax Passports, travel and living abroad Visas and immigration Working, jobs and pensions Government activity Departments Departments, agencies and\nYou could be: out of work working (including self-employed or part time) unable to work, for example because of a health condition To claim you must: live in the UK be aged 18 or over (there are some exceptions if you’re 16 to 17) be under State Pension age have £16,000 or less in money, savings and investments You can use a benefits calculator to check what benefits you could get.\nYour bank or financial institution can share information about you with the Department for Work and Pensions ( DWP ) to help identify if your eligibility has changed.\nIf you’re an EU, EEA or Swiss citizen You and your family might also need settled or pre-settled status under the EU Settlement Scheme to get Universal Credit.\nCheck if you can still apply to the EU Settlement Scheme .\nYou must make a joint claim for your household, even if your partner is not eligible.\nHow much you can get will depend on your partner’s income and savings, as well as your own.\nIf one of you has reached State Pension age If only one of you has reached State Pension age , you and your partner can still claim Universal Credit as a couple.\nIf you’re studying or in training You can make a claim for Universal Credit if you’re in full-time education and any of the following apply: you live with your partner and they’re eligible for Universal Credit you’re responsible for a child, either as a single person or as a couple you’ve reached State Pension age and live with a partner who is below State Pension age you’ve received a Migration Notice letter telling you to move to Universal Credit You can also claim Universal Credit if you’re 21 or under, studying any qualification up to A level or equivalent and do not have parental support.\nYou may be able to claim if you are studying part-time or doing a course for which no student loan or finance is available.\nCheck the guidance about claiming Universal Credit as a student .\nStudents with disabilities or health conditions You can claim Universal Credit if you’re in full-time education, and have been assessed as having limited capability for work by a Work Capability Assessment before starting your course.\nYou must also be entitled to any of the following: Personal Independence Payment ( PIP ) Disability Living Allowance ( DLA ) Attendance Allowance Armed Forces Independence Payment Adult Disability Payment (ADP) in Scotland Child Disability Payment (CDP) in Scotland Pension Age Disability Payment (PADP) in Scotland Scottish Adult Disability Living Allowance (SADLA) in Scotland Claiming if you’re 16 or 17 You can make a claim for Universal Credit if any of the following apply: you have a health condition or disability and have medical evidence for it, such as a fit note you’re caring for someone\nIf you’re in the armed forces If you’re in the armed forces and stationed abroad, you can apply for Universal Credit.\nYou’ll need to use a specific address when you apply .\nPrevious : What Universal Credit is Next : What you'll get View a printable version of the whole guide Related content Sign in to your Universal Credit account Benefits calculators Housing Benefit Self-employment and Universal Credit Sign in to a service Collection Universal Credit: detailed information for claimants Universal Credit: information for employers Universal Credit: for claimants who receive a Migration Notice letter Universal Credit: information for stakeholders and partners Universal Credit: information for landlords Explore the topic Benefits and financial support if you're cari\nMaybe Yes this page is useful No this page is not useful Thank you for your feedback Report a problem with this page Help us improve GOV.UK Do not include personal or financial information like your National Insurance number or credit card details.\nCancel Services and information Benefits Births, death, marriages and care Business and self-employed Childcare and parenting Citizenship and living in the UK Crime, justice and the law Disabled people Driving and transport Education and learning Employing people Environment and countryside Housing and local services Money and tax Passports, travel and living abroad Visas and immigration Working, jobs and pensions Government activity Departments News Guidance and regulation Research and statistics Policy papers and consultations Transparency How government works Get involved Support links Help"
+  },
+  {
+   "url": "https://www.gov.uk/jobseekers-allowance/eligibility",
+   "title": "Jobseeker's Allowance (JSA)",
+   "provider": "GOV.UK",
+   "country": "GB",
+   "domain": "work",
+   "summary": "You can get JSA if you're old enough, live in Great Britain, and have paid the right National Insurance.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "age",
+     "op": "gte",
+     "source_quote": "be 18 or over",
+     "plain": "You must be at least 18 years old.",
+     "value": 18
+    },
+    {
+     "id": "c2",
+     "attr": "country",
+     "op": "eq",
+     "source_quote": "be in Great Britain",
+     "plain": "You must live in Great Britain.",
+     "value": "GB"
+    }
+   ],
+   "page_text": "Cookies on GOV.UK We use some essential cookies to make this website work. We’d like to set additional cookies to understand how you use GOV.UK, remember your settings and improve government services. We also use cookies set by other sites to help us deliver content from their services. You have accepted additional cookies. You can change your cookie settings at any time. You have rejected additional cookies. You can change your cookie settings at any time. Accept additional cookies Reject additional cookies View cookies Hide cookie message Skip to main content Navigation menu Menu Menu Services and information Benefits Births, death, marriages and care Business and self-employed Childcare a\n...\nAccept additional cookies Reject additional cookies View cookies Hide cookie message Skip to main content Navigation menu Menu Menu Services and information Benefits Births, death, marriages and care Business and self-employed Childcare and parenting Citizenship and living in the UK Crime, justice and the law Disabled people Driving and transport Education and learning Employing people Environment and countryside Housing and local services Money and tax Passports, travel and living abroad Visas and immigration Working, jobs and pensions Government activity Departments Departments, agencies and\nThere are different eligibility rules if you’re in Northern Ireland .\nYou must also: be 18 or over be under the State Pension age be in Great Britain not be working 16 or more hours per week You will not be eligible if you’re involved in a disagreement with your employer about employment-related issues (a ‘trade dispute’).\nYou will not be eligible if you have an illness or disability which stops you from working.\nCheck if you can get Employment and Support Allowance instead.\nYour National Insurance contributions To be eligible you must usually have made Class 1 National Insurance contributions for the previous 2 tax years.\nNational Insurance credits can count for one of these years if you did not pay National Insurance contributions.\nExample If you apply for JSA on or before 2 January 2027, you must have paid or been credited with National Insurance in the tax years: 6 April 2024 to 5 April 2025 6 April 2023 to 5 April 2024 If you apply for JSA on or after 3 January 2027, you must have paid or been credited with National Insurance in the tax years: 6 April 2025 to 5 April 2026 6 April 2024 to 5 April 2025 You might be eligible based on contributions from different tax years if, during the previous 2 tax years, you have: claimed JSA , Employment and Support Allowance (ESA), Carer’s Allowance, Maternity Allowance or Carer Su\nIf you’re in education If you’re studying part-time you may be eligible for JSA .\nIf you’re studying full-time, you may be eligible if all of the following apply: the qualification you’re studying for is at Level 4 or below you do not get a maintenance loan, grant or bursary for the qualification you’re studying you can meet the work-related requirements agreed with your work coach Claiming Universal Credit and New Style JSA You might be able to get Universal Credit at the same time or instead of New Style JSA .\nIf you get both benefits, your New Style JSA payments: count as income when claiming Universal Credit will reduce the amount of Universal Credit you receive Your New Style JSA will usually be paid more regularly than Universal Credit.\nYou’ll also get different National Insurance credits which count towards your State Pension and help you qualify for other benefits.\nCheck if you’re eligible for Universal Credit .\nPrevious : How it works Next : Apply for New Style Jobseeker's Allowance (JSA) View a printable version of the whole guide Related content Benefits calculators Find a job Employment and Support Allowance (ESA) Contact Jobcentre Plus How and when your benefits are paid related content links \" data-ga4-event='{\"event_name\":\"select_content\",\"type\":\"related content\"}' href=\"#\"> Show 2 more related content links Universal Credit and Get help with benefits and pensions if you have accessibility needs Explore the topic Benefits and financial support if you're looking for work Finding a job Is this pa\nMaybe Yes this page is useful No this page is not useful Thank you for your feedback Report a problem with this page Help us improve GOV.UK Do not include personal or financial information like your National Insurance number or credit card details.\nCancel Services and information Benefits Births, death, marriages and care Business and self-employed Childcare and parenting Citizenship and living in the UK Crime, justice and the law Disabled people Driving and transport Education and learning Employing people Environment and countryside Housing and local services Money and tax Passports, travel and living abroad Visas and immigration Working, jobs and pensions Government activity Departments News Guidance and regulation Research and statistics Policy papers and consultations Transparency How government works Get involved Support links Help"
+  },
+  {
+   "url": "https://www.gov.uk/carers-allowance/eligibility",
+   "title": "Carer's Allowance",
+   "provider": "Department for Work and Pensions",
+   "country": "GB",
+   "domain": "income",
+   "summary": "You can get Carer's Allowance if you're at least 16, care at least 35 hours a week, and earn £204 or less a week.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "age",
+     "op": "gte",
+     "source_quote": "you’re 16 or over",
+     "plain": "You must be at least 16 years old.",
+     "value": 16
+    }
+   ],
+   "page_text": "Cookies on GOV.UK We use some essential cookies to make this website work. We’d like to set additional cookies to understand how you use GOV.UK, remember your settings and improve government services. We also use cookies set by other sites to help us deliver content from their services. You have accepted additional cookies. You can change your cookie settings at any time. You have rejected additional cookies. You can change your cookie settings at any time. Accept additional cookies Reject additional cookies View cookies Hide cookie message Skip to main content Navigation menu Menu Menu Services and information Benefits Births, death, marriages and care Business and self-employed Childcare a\n...\nAccept additional cookies Reject additional cookies View cookies Hide cookie message Skip to main content Navigation menu Menu Menu Services and information Benefits Births, death, marriages and care Business and self-employed Childcare and parenting Citizenship and living in the UK Crime, justice and the law Disabled people Driving and transport Education and learning Employing people Environment and countryside Housing and local services Money and tax Passports, travel and living abroad Visas and immigration Working, jobs and pensions Government activity Departments Departments, agencies and\nThe person you care for The person you care for must already get one of these benefits: Personal Independence Payment - daily living component Disability Living Allowance - the middle or highest care rate Scottish Adult Disability Living Allowance - the middle or highest care rate Attendance Allowance Pension Age Disability Payment Constant Attendance Allowance at or above the normal maximum rate with an Industrial Injuries Disablement Benefit Constant Attendance Allowance at the basic (full day) rate with a War Disablement Pension Armed Forces Independence Payment Child Disability Payment - t\nIf the other carer does not want to do that, you can still apply for Carer’s Allowance.\nThis can include: helping with washing and cooking taking the person you care for to a doctor’s appointment helping with household tasks, like managing bills and shopping Your eligibility All of the following must apply: you’re 16 or over you spend at least 35 hours a week caring for someone you’ve been in England, Scotland or Wales for at least 2 of the last 3 years (this does not apply if you’re a refugee or have humanitarian protection status) you normally live in England or Wales, or you live abroad as a member of the armed forces (you might still be eligible if you’re moving to or already\nThe deadline to apply to the scheme was 30 June 2021 for most people, but you might still be able to apply.\nCheck if you can still apply to the EU Settlement Scheme .\nCalculating your earnings Your earnings are any income from employment and self-employment after tax, National Insurance and expenses.\nExpenses can include: 50% of your pension contributions equipment you need to do your job, for example specialist clothing travel costs between different workplaces that are not paid for by your employer, for example fuel or train fares business costs if you’re self-employed, for example a computer you only use for work If you pay a carer to look after the disabled person or your children while you work, you can treat care costs that are less than or equal to 50% of your earnings as an expense.\nThe carer must not be your spouse, partner, parent, child or sibling.\nExample You earn £100 a week (after tax, National Insurance and other expenses) and spend £60 a week on care while you work.\nPayments that do not count as earnings include: money received from an occupational or private pension contributions towards your living or accommodation costs from someone you live with (they cannot be a tenant or boarder) the first £20 a week and 50% of the rest of any income you make from someone boarding in your home a loan or advance payment from your employer If you get State Pension You cannot get the full amount of both Carer’s Allowance and your State Pension at the same time.\nIf you’re not eligible You might be eligible for Carer’s Credit if you’re not eligible for Carer’s Allowance.\nPrevious : How it works Next : Effect on other benefits View a printable version of the whole guide Related content Carer's Allowance: report changes Contact the Carer's Allowance Unit Attendance Allowance Carer's Credit Constant Attendance Allowance related content links \" data-ga4-event='{\"event_name\":\"select_content\",\"type\":\"related content\"}' href=\"#\"> Show 3 more related content links How and when your benefits are paid , Personal Independence Payment (PIP) , and Get help with benefits and pensions if you have accessibility needs Explore the topic Benefits and financial support if you're \nMaybe Yes this page is useful No this page is not useful Thank you for your feedback Report a problem with this page Help us improve GOV.UK Do not include personal or financial information like your National Insurance number or credit card details.\nCancel Services and information Benefits Births, death, marriages and care Business and self-employed Childcare and parenting Citizenship and living in the UK Crime, justice and the law Disabled people Driving and transport Education and learning Employing people Environment and countryside Housing and local services Money and tax Passports, travel and living abroad Visas and immigration Working, jobs and pensions Government activity Departments News Guidance and regulation Research and statistics Policy papers and consultations Transparency How government works Get involved Support links Help"
+  },
+  {
+   "url": "https://www.canada.ca/en/services/benefits/education/student-aid/grants-loans/full-time.html",
+   "title": "Canada Student Grant (full-time)",
+   "provider": "Employment and Social Development Canada (ESDC)",
+   "country": "CA",
+   "domain": "education",
+   "summary": "If you’re a full‑time student who needs money and your family earns below a set amount, you can get this grant.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "low_income",
+     "op": "is_true",
+     "source_quote": "have a financial need",
+     "plain": "You must have financial need."
+    }
+   ],
+   "page_text": "Skip to main content Skip to \"About government\" Language selection Français fr / Gouvernement du Canada Search Search Canada.ca Search Menu Main Menu Jobs and the workplace Immigration and citizenship Travel and tourism Business and industry Benefits Health Taxes Environment and natural resources National security and defence Culture, history and sport Policing, justice and emergencies Transport and infrastructure Canada and the world Money and finances Science and innovation Manage life events You are here: Canada.ca Benefits Student aid and education planning Student aid Canada Student Grants and Loans Canada Student Grant for Full-Time Students This grant is available to full-time students in financial need. You are automatically assessed when you apply for student aid with your province or territory. If you are in school part-time, see grant for part-time students . Note: Most students going to private, for-profit schools in Canada are no longer eligible for this grant. Students attending some programs may be exempt from this restriction . If you were not approved for funding and think you or your school may qualify, contact your provincial or territorial student aid office . Note: This grant is not available to students from the Northwest Territories, Nunavut and Quebec . They have their own student aid programs. Eligibility You could be eligible for this grant if you apply and: have a financial need are a full-time student in a qualified program at a designated school that is not restricted from receiving this grant your total family income is less than the income threshold below Income thresholds for Canada Student Grant eligibility for full-time students: Previous year’s gross annual family income (Effective August 1, 2026) Family size (number of people) For maximum grant (if gross family income is below the amount for family size, the student qualifies for the maximum grant) For grant cut-off (if gross family income is at or above these amounts for family size, the student does not qualify for the grant) 1 $38,474 $69,987 2 $54,412 $98,017 3 $66,641 $117,317 4 $76,952 $129,769 5 $86,033 $141,180 6 $94,245 $151,937 7 and more $101,797 $161,321 How much you could receive Until the end of the 2026 to 2027 school year, you could receive up to $4,200 per year or up to $525 per month of study. You can get this grant for each year of your undergraduate studies as long as you are still in school full-time. The school year runs from August 1 to July 31. Apply Apply for student aid through your province or territory. Related services and information Grant for full-time students with dependants Page details 2026-08-31 About this site Benefits Contact Employment and Social Development Canada (ESDC) Government of Canada All contacts Departments and agencies About government Themes and topics Jobs Immigration and citizenship Travel and tourism Business Benefits Health Taxes Environment and natural resources National security and defence Culture, history and sport Policing, justice and emergencies Transport and infrastructure Canada and the world Money and finances Science and innovation Indigenous Peoples Veterans and military Youth Manage life events Government of Canada Corporate Social media Mobile applications About Canada.ca Terms and conditions Privacy"
+  },
+  {
+   "url": "https://www.usa.gov/food-stamps",
+   "title": "SNAP food benefits",
+   "provider": "USA.gov",
+   "country": "US",
+   "domain": "income",
+   "summary": "If you don’t earn much money, you can apply for SNAP to get food help.",
+   "required_docs": [],
+   "deadline": "",
+   "conditions": [
+    {
+     "id": "c1",
+     "attr": "low_income",
+     "op": "is_true",
+     "source_quote": "Known previously as \"food stamps,\" the Supplemental Nutrition Assistance Program (SNAP) can help you pay for food if you have a low income.",
+     "plain": "You must have a low income"
+    }
+   ],
+   "page_text": "Skip to main content An official website of the United States government Here's how you know Here's how you know Official websites use .gov A .gov website belongs to an official government organization in the United States. Secure .gov websites use HTTPS A lock ( ) or https:// means you’ve safely connected to the .gov website. Share sensitive information only on official, secure websites. Home Close Search 1-844-USAGOV1 Government benefits Food assistance Food stamps (SNAP benefits) Food assistance programs for older adults Food assistance with the WIC program Get emergency food assistance School meals and food programs for children Food assistance for Native Americans Visit vote.gov to learn how to register to vote or to update your registration. Español Menu Call us at 1-844-USAGOV1 Search All topics and services The U.S. and its government Government benefits Immigration and U.S. citizenship Money and credit Travel Voting and elections Home Government benefits Food assistance Food stamps (SNAP benefits) Government benefits Find government benefits and financial help Food assistance current page Food stamps (SNAP benefits) Food assistance programs for older adults Food assistance with the WIC program Get emergency food assistance School meals and food programs for children Food assistance for Native Americans Health insurance Housing help Help with utility bills Welfare and financial assistance Social Security Government checks and payments State social service agencies Government death benefits Report incorrect benefit payments Government grants and loans How to apply for food stamps (SNAP benefits) and check your balance Known previously as \"food stamps,\" the Supplemental Nutrition Assistance Program (SNAP) can help you pay for food if you have a low income. Learn if you are eligible for SNAP and how to apply Find your SNAP office to apply Each month, SNAP benefits are added to an Electronic Benefits Transfer (EBT) card to use when you shop for food. To be eligible for SNAP benefits, you must meet your state’s requirements. This includes taking into account income limits and the money you have in your bank to decide if you qualify for SNAP. To apply for SNAP, contact your state or local SNAP office. Depending on your state, you may be able to submit a food stamp application online, in person, by mail, or by fax. You may need to take part in an interview before being approved for SNAP benefits. Check your SNAP balance Every state issues SNAP benefits on an EBT card. To check how much money is left on your EBT card: Check your receipt from the store where you made a purchase using your SNAP benefits. Many stores will print your balance on your receipts. Find out if your state offers a mobile app you can use to manage your benefits. Many allow you to check your balance. Find your SNAP office to check your benefits. Image Find more government programs that can help during tough financial times. Facing financial hardship LAST UPDATED: December 23, 2025 SHARE THIS PAGE: Have a question? Ask a real person any government-related question for free. They will get you the answer or let you know where to find it. Call USAGov Chat with USAGov Top Government information All topics and services Directory of U.S. government agencies and departments Branches of government About us About USAGov Report a website issue Website usage data For federal agencies Partner with us Read our blog USAGov Contact Center Ask USA.gov a question at 1-844-USAGOV1 (1-844-872-4681) USAGov is the official guide to government information and services An official website of the U.S. General Services Administration This website complies with Executive Order 14224 . English is the official language of the U.S. Government, and the English-language version of this website is the authoritative source for all federal information contained herein. Accessibility policy Privacy and security policies FOIA requests"
+  }
+ ]
+}

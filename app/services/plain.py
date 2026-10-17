@@ -1,339 +1,143 @@
-"""Turn stored fields into sentences a person can read."""
+"""Turn stored fields into words a person can read."""
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
+from app.services.drafting import COUNTRY_NAMES
+
 ATTR_LABELS = {
-    "disability": "Disability",
     "age": "Age",
     "education_level": "Education",
-    "low_income": "Household income",
-    "unemployed": "Employment",
-    "needs_language_support": "Language support",
+    "low_income": "Low income",
+    "disability": "Disability",
+    "unemployed": "Out of work",
+    "student": "Student",
+    "country": "Lives in",
 }
-
-EDUCATION = {
-    "primary": "Primary school",
-    "secondary": "Secondary school",
-    "tertiary": "University or college",
-}
-
-DOCS = {
-    "id_document": "Identity document",
-    "disability_certificate": "Disability certificate",
-    "education_certificate": "Education certificate",
-    "cnic": "CNIC",
-    "income_certificate": "Income certificate",
-    "transcript": "Transcript",
-}
-
-DOMAINS = {
-    "work": "Work",
-    "education": "Education",
-    "health": "Health",
-    "legal": "Legal aid",
-    "income": "Income support",
-}
-
-COUNTRIES = {"PK": "Pakistan"}
-
+EDUCATION = {"primary": "Primary school", "secondary": "Secondary school", "tertiary": "University or college"}
+DOMAINS = {"education": "Education", "income": "Income support", "health": "Health", "work": "Work",
+           "housing": "Housing"}
 STAGES = {
-    "seed": "Programme list loaded",
-    "login": "Signed in",
-    "source_check": "Notice checked",
-    "source_changed": "Notice text changed",
-    "source_unreachable": "Notice could not be read",
-    "ingest_draft": "Draft prepared",
-    "rule_approved": "Rule change approved",
-    "fanout_navigator": "Held for review",
-    "fanout_notify": "Alert queued",
-    "fanout_skip": "No alert needed",
-    "navigator_release": "Alert released",
-    "applicant_consent": "Packet approved",
-    "send_ok": "Packet sent",
-    "send_blocked": "Send blocked",
-    "send_failed": "Send failed",
-    "privacy_delete": "Stored data deleted",
-    "kill_switch": "Sending switch changed",
-    "deadline_reminder": "Deadline reminder",
-    "signup": "Signed up",
-    "assistant_reply": "Citizen assistant replied",
-    "assistant_packet": "Packet drafted for approval",
-    "rule_rejected": "Rule change rejected",
-    "navigator_hold": "Alert held",
-    "source_updated": "Source updated",
-}
-
-APP_STATES = {
-    "ready": "Waiting for your approval",
-    "approved": "Approved, not sent yet",
-    "sent": "Sent",
-    "failed": "Not sent",
-}
-
-NOTIFY_STATUS = {
-    "pending_review": "Waiting for a person",
-    "held": "Held by a person",
-    "approved": "A person released this",
-    "queued": "In your alerts",
-    "rejected": "Rejected",
-}
-
-KINDS = {
-    "newly_not_eligible": "You may no longer qualify",
-    "newly_eligible": "You may now qualify",
-    "deadline_reminder": "Deadline coming up",
+    "catalogue_loaded": "Catalogue loaded",
+    "sign_in": "Signed in",
+    "profile_saved": "Profile saved",
+    "ai_draft": "AI drafted rules",
+    "pattern_draft": "Rules drafted by pattern",
+    "fetch_failed": "Page could not be read",
+    "rule_approved": "Rules approved",
+    "rule_rejected": "Draft rejected",
+    "fan_out": "Everyone re-checked",
+    "news_released": "Bad news released",
+    "news_held": "Bad news kept on hold",
+    "sources_checked": "Watched pages re-read",
+    "packet_approved": "Applicant approved a packet",
+    "data_deleted": "Account deleted",
 }
 
 
 def attr_label(attr: str | None) -> str:
-    if not attr:
-        return "Requirement"
-    return ATTR_LABELS.get(attr, attr.replace("_", " ").capitalize())
+    return ATTR_LABELS.get(attr or "", (attr or "Requirement").replace("_", " ").capitalize())
 
 
-def doc_label(doc: str) -> str:
-    return DOCS.get(doc, doc.replace("_", " "))
+def country_name(code: str | None) -> str:
+    return COUNTRY_NAMES.get((code or "").upper(), code or "")
+
+
+def flag(code: str | None) -> str:
+    """Country code badge text. Flag emoji do not render on Windows, so codes are used."""
+    return (code or "").upper() or "ANY"
 
 
 def domain_label(domain: str | None) -> str:
-    if not domain:
-        return ""
-    return DOMAINS.get(domain, domain.replace("_", " ").capitalize())
-
-
-def country_label(code: str | None) -> str:
-    if not code:
-        return ""
-    return COUNTRIES.get(code, code)
-
-
-def education_label(value: Any) -> str:
-    if value is None:
-        return "Prefer not to say"
-    return EDUCATION.get(str(value), str(value))
+    return DOMAINS.get(domain or "", (domain or "").capitalize())
 
 
 def value_label(attr: str, value: Any) -> str:
     if value is None:
-        return "Prefer not to say"
+        return "Not given"
     if attr == "education_level":
-        return education_label(value)
+        return EDUCATION.get(str(value), str(value))
+    if attr == "country":
+        return country_name(str(value))
     if isinstance(value, bool):
-        if attr == "low_income":
-            return "Low income" if value else "Not low income"
-        if attr == "unemployed":
-            return "Unemployed" if value else "In work"
-        if attr == "disability":
-            return "Yes" if value else "No"
-        if attr == "needs_language_support":
-            return "Needed" if value else "Not needed"
         return "Yes" if value else "No"
     return str(value)
-
-
-def profile_rows(attrs: dict[str, Any] | None) -> list[dict[str, str]]:
-    if not attrs:
-        return []
-    order = list(ATTR_LABELS)
-    keys = [key for key in order if key in attrs] + [key for key in attrs if key not in order]
-    return [
-        {"key": key, "label": attr_label(key), "value": value_label(key, attrs[key])}
-        for key in keys
-    ]
 
 
 def rule_phrase(condition: dict[str, Any] | None) -> str:
     if not condition:
         return "A published condition"
-    attr = condition.get("attr")
-    op = condition.get("op")
-    value = condition.get("value")
-    label = attr_label(attr if isinstance(attr, str) else None)
+    attr, op, value = condition.get("attr"), condition.get("op"), condition.get("value")
     if op == "is_true":
-        if attr == "low_income":
-            return "Household income is low"
-        if attr == "unemployed":
-            return "The person is unemployed"
-        if attr == "disability":
-            return "The person has a disability"
-        if attr == "needs_language_support":
-            return "Language support is needed"
-        return f"{label} is required"
-    if op == "between" and isinstance(value, (list, tuple)) and len(value) == 2:
-        return f"{label} is {value[0]} to {value[1]}"
-    if op == "gte":
-        if attr == "age":
-            return f"Age is {value} or older"
-        return f"{label} is at least {value}"
-    if op == "lte":
-        if attr == "age":
-            return f"Age is {value} or under"
-        return f"{label} is at most {value}"
-    if op == "in" and isinstance(value, (list, tuple)):
-        pretty = ", ".join(education_label(item) if attr == "education_level" else str(item) for item in value)
-        return f"{label} is {pretty}"
-    if op == "eq":
-        shown = education_label(value) if attr == "education_level" else value
-        return f"{label} is {shown}"
-    if op == "any_of" and isinstance(value, (list, tuple)):
-        return f"{label} includes {', '.join(str(item) for item in value)}"
-    return label
+        return {
+            "low_income": "Household income is low",
+            "disability": "Has a disability",
+            "unemployed": "Is out of work",
+            "student": "Is a student",
+        }.get(attr or "", f"{attr_label(attr)} is required")
+    if attr == "age":
+        if op == "between" and isinstance(value, list):
+            return f"Aged {value[0]} to {value[1]}"
+        if op == "gte":
+            return f"Aged {value} or over"
+        if op == "lte":
+            return f"Aged {value} or under"
+    if attr == "education_level":
+        values = value if isinstance(value, list) else [value]
+        return "Education: " + " or ".join(EDUCATION.get(str(v), str(v)) for v in values)
+    if attr == "country":
+        values = value if isinstance(value, list) else [value]
+        return "Lives in " + " or ".join(country_name(str(v)) for v in values)
+    return f"{attr_label(attr)} {op} {value}"
 
 
 def describe_diff_lines(diff: dict[str, Any] | None) -> list[str]:
-    if not diff:
-        return ["Nothing in the rules changed."]
     lines: list[str] = []
-    for change in diff.get("changed_conditions") or []:
-        before = change.get("before") or {}
-        after = change.get("after") or {}
-        lines.append(f"{rule_phrase(before)}. After this draft: {rule_phrase(after)}.")
-    for added in diff.get("added_conditions") or []:
-        lines.append(f"Added condition: {rule_phrase(added)}.")
-    for removed in diff.get("removed_conditions") or []:
-        lines.append(f"Removed condition: {rule_phrase(removed)}.")
-    if diff.get("deadline_changed"):
-        lines.append("The deadline changed.")
-    for doc in diff.get("documents_added") or []:
-        lines.append(f"Document added to the checklist: {doc_label(doc)}.")
-    for doc in diff.get("documents_removed") or []:
-        lines.append(f"Document removed from the checklist: {doc_label(doc)}.")
-    if not lines:
-        return ["Nothing in the rules changed."]
-    return lines
-
-
-def payload_rows(payload: dict[str, Any] | None) -> list[dict[str, str]]:
-    if not payload:
-        return []
-    fields = payload.get("fields") or {}
-    rows: list[dict[str, str]] = []
-    if payload.get("to"):
-        rows.append({"label": "Send to", "value": str(payload["to"])})
-    labels = (
-        ("full_name", "Full name"),
-        ("contact_email", "Email"),
-        ("age", "Age"),
-        ("education_level", "Education"),
-    )
-    for key, label in labels:
-        if key not in fields:
-            continue
-        value = fields[key]
-        if key == "education_level":
-            value = education_label(value)
-        rows.append({"label": label, "value": str(value)})
-    docs = payload.get("attachments") or []
-    if docs:
-        rows.append(
-            {"label": "Sample documents", "value": ", ".join(doc_label(doc) for doc in docs)}
-        )
-    return rows
+    for change in (diff or {}).get("changed_conditions") or []:
+        lines.append(f"{rule_phrase(change.get('before'))} is now: {rule_phrase(change.get('after'))}.")
+    for added in (diff or {}).get("added_conditions") or []:
+        lines.append(f"New rule: {rule_phrase(added)}.")
+    for removed in (diff or {}).get("removed_conditions") or []:
+        lines.append(f"Rule removed: {rule_phrase(removed)}.")
+    return lines or ["The rules were re-confirmed with no change."]
 
 
 def stage_label(stage: str | None) -> str:
-    if not stage:
-        return "Event"
-    return STAGES.get(stage, stage.replace("_", " ").capitalize())
+    return STAGES.get(stage or "", (stage or "Event").replace("_", " ").capitalize())
 
 
-def state_label(state: str | None) -> str:
-    if not state:
-        return "Unknown"
-    return APP_STATES.get(state, state.replace("_", " ").capitalize())
+def ago(moment: datetime | None) -> str:
+    if not moment:
+        return "never"
+    seconds = int((datetime.utcnow() - moment).total_seconds())
+    if seconds < 60:
+        return "just now"
+    if seconds < 3600:
+        return f"{seconds // 60} min ago"
+    if seconds < 86400:
+        return f"{seconds // 3600} h ago"
+    return moment.strftime("%d %b %Y")
 
 
-def notify_status_label(status: str | None) -> str:
-    if not status:
-        return ""
-    return NOTIFY_STATUS.get(status, status.replace("_", " "))
+def day(moment: datetime | None) -> str:
+    return moment.strftime("%d %b %Y") if moment else ""
 
 
-def kind_label(kind: str | None) -> str:
-    if not kind:
-        return "Update"
-    return KINDS.get(kind, kind.replace("_", " ").capitalize())
-
-
-def eligibility_label(status: str | None) -> str:
+def status_word(status: str | None) -> str:
     return {
-        "eligible": "Eligible",
-        "likely": "Needs an answer",
-        "not_eligible": "Not eligible",
+        "eligible": "Qualifies",
+        "likely": "One answer away",
+        "not_eligible": "Does not qualify",
+        "none": "Not listed",
+        "unchecked": "Not checked",
     }.get(status or "", status or "")
 
 
-def outcome_label(outcome: Any) -> str:
-    if outcome is True:
-        return "Met"
-    if outcome is False:
-        return "Not met"
-    return "Not answered"
-
-
-def source_status_label(status: str | None) -> str:
-    return {
-        "ok": "Read",
-        "unreachable": "Unreachable",
-        "not_checked": "Not read yet",
-        "changed": "Changed",
-    }.get(status or "", (status or "Unknown").replace("_", " "))
-
-
-def status_shift(before: str | None, after: str | None) -> str:
-    return f"{eligibility_label(before)} before. {eligibility_label(after)} after this change."
-
-
-def next_step_label(step: str | None) -> str:
-    return {
-        "review": "Review the programme",
-        "apply": "Prepare an application",
-        "deadline": "Note the deadline",
-    }.get(step or "", "Review the programme")
-
-
-def alert_copy(
-    kind: str,
-    program_title: str,
-    *,
-    diff_lines: list[str] | None = None,
-    quote: str = "",
-    days_left: int | None = None,
-    deadline: str = "",
-) -> dict[str, str]:
-    """Sentences for one alert. Quotes are passed in; this does not invent them."""
-    title = program_title or "this programme"
-    changed = ""
-    if diff_lines:
-        changed = diff_lines[0]
-    if kind == "newly_eligible":
-        return {
-            "what_changed": changed or f"The rules for {title} changed.",
-            "meaning": f"You may now qualify for {title}.",
-            "quote": quote,
-            "next_step": "apply",
-        }
-    if kind == "newly_not_eligible":
-        return {
-            "what_changed": changed or f"The rules for {title} changed.",
-            "meaning": f"You may no longer qualify for {title}.",
-            "quote": quote,
-            "next_step": "review",
-        }
-    if kind == "deadline_reminder":
-        when = deadline or "the date on file"
-        left = f"{days_left} days left. " if days_left is not None else ""
-        return {
-            "what_changed": f"{left}The deadline on file is {when}.",
-            "meaning": f"Your application for {title} is still open. Note the deadline.",
-            "quote": quote,
-            "next_step": "deadline",
-        }
-    return {
-        "what_changed": changed or f"Something changed for {title}.",
-        "meaning": f"Read the notice for {title}.",
-        "quote": quote,
-        "next_step": "review",
-    }
+def profile_rows(attrs: dict[str, Any] | None) -> list[dict[str, str]]:
+    rows = []
+    for key in ATTR_LABELS:
+        if key in (attrs or {}):
+            rows.append({"key": key, "label": attr_label(key), "value": value_label(key, attrs[key])})
+    return rows

@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+{% block title %}Find the support you're owed — Entitle{% endblock %}
+{% block body_class %}page-citizen{% endblock %}
+
+{% macro receipt(row, state) -%}
+<li class="receipt receipt-{{ state }}">
+  <span class="receipt-mark" aria-hidden="true">{% if state == "met" %}✓{% elif state == "unmet" %}✕{% else %}?{% endif %}</span>
+  <div>
+    <p class="receipt-rule">{{ row.plain or rule_phrase(row.condition) }}
+      <span class="sr-only">{% if state == "met" %}(you meet this){% elif state == "unmet" %}(you do not meet this){% else %}(not answered yet){% endif %}</span></p>
+    <blockquote>“{{ row.quote }}”</blockquote>
+  </div>
+</li>
+{%- endmacro %}
+
+{% macro programme_card(card, show_apply=False) -%}
+{% set p = card.program %}
+<article class="prog">
+  <header class="prog-head">
+    <span class="flag" title="{{ country_name(p.country) }}">{{ flag(p.country) }}</span>
+    <div>
+      <h3>{{ p.title }}</h3>
+      <p class="prog-meta">{{ p.provider }} <span class="sep">/</span> {{ domain_label(p.domain) }} <span class="sep">/</span> {{ country_name(p.country) }}</p>
+    </div>
+  </header>
+  {% if p.summary %}<p class="prog-summary">{{ p.summary }}</p>{% endif %}
+  <ul class="receipts">
+    {% for row in card.match.met %}{{ receipt(row, "met") }}{% endfor %}
+    {% for row in card.match.unmet %}{{ receipt(row, "unmet") }}{% endfor %}
+    {% for row in card.match.unknown %}{{ receipt(row, "unknown") }}{% endfor %}
+    {% if not (card.match.met or card.match.unmet or card.match.unknown) %}
+      {% for c in card.rules.conditions %}{{ receipt({"plain": c.plain, "condition": c, "quote": c.source_quote}, "unknown") }}{% endfor %}
+    {% endif %}
+  </ul>
+  <footer class="prog-foot">
+    <span class="approved"><span class="actor-dot actor-human-dot"></span>Approved by {{ card.version.approved_by if card.version else "a reviewer" }}{% if card.version and card.version.approved_at %}, {{ day(card.version.approved_at) }}{% endif %}</span>
+    <span class="prog-actions">
+      <a class="link" href="{{ p.official_url }}" target="_blank" rel="noopener">Official page</a>
+      {% if show_apply %}
+        {% if applied.get(p.id) %}
+          <a class="btn btn-quiet" href="#packets" data-tab-link="packets">Packet ready</a>
+        {% else %}
+          <form method="post" action="/me/apply/{{ p.id }}"><button class="btn btn-primary" type="submit">Prepare my packet</button></form>
+        {% endif %}
+      {% endif %}
+    </span>
+  </footer>
+</article>
+{%- endmacro %}
+
+{% macro questionnaire(edit=False) -%}
+<form class="quiz" method="post" action="/me/details" data-quiz>
+  <header class="quiz-head">
+    <div>
+      <h2>{{ "Your answers" if edit else "A few questions" }}</h2>
+      <p class="group-note">These are exactly what the approved rules ask about. Skip anything you prefer not to share.</p>
+    </div>
+    <div class="quiz-progress" aria-live="polite">
+      <span><strong data-quiz-count>0</strong> of {{ questions|length + 1 }} answered</span>
+      <span class="quiz-bar"><span data-quiz-bar></span></span>
+    </div>
+  </header>
+
+  <ol class="q-list">
+    <li class="q">
+      <div class="q-text">
+        <label class="q-ask" for="q-name">What is your first name?</label>
+        <p class="q-why">It goes on the packets you prepare. Nothing else.</p>
+      </div>
+      <div class="q-input">
+        <input id="q-name" name="name" maxlength="60" autocomplete="given-name" placeholder="e.g. Sara"
+               value="{{ citizen.display_name if citizen else '' }}" {{ '' if citizen else 'required' }} data-q>
+      </div>
+    </li>
+    {% for q in questions %}
+    <li class="q">
+      <div class="q-text">
+        {% if q.kind == "choice" %}<p class="q-ask" id="q-{{ q.key }}-label">{{ q.ask }}</p>
+        {% else %}<label class="q-ask" for="q-{{ q.key }}">{{ q.ask }}</label>{% endif %}
+        <p class="q-why">{{ q.why }}
+          {% if q.used_by %}<span class="q-used"><span class="actor-dot actor-human-dot"></span>{{ q.used_by }} approved programme{{ "s ask" if q.used_by != 1 else " asks" }} this</span>{% endif %}
+        </p>
+      </div>
+      <div class="q-input">
+        {% if q.kind == "number" %}
+          <input id="q-{{ q.key }}" type="number" name="{{ q.key }}" min="5" max="120" inputmode="numeric" placeholder="Years" value="{{ q.value }}" data-q>
+        {% elif q.kind == "select" %}
+          <select id="q-{{ q.key }}" name="{{ q.key }}" data-q>
+            <option value="">Choose a country</option>
+            {% for code in countries %}<option value="{{ code }}" {{ 'selected' if q.value == code }}>{{ country_name(code) }}</option>{% endfor %}
+          </select>
+        {% else %}
+          <div class="seg" role="radiogroup" aria-labelledby="q-{{ q.key }}-label" data-q-group>
+            {% for value, label in q.options %}
+            <label class="seg-opt {{ 'seg-skip' if not value }}">
+              <input type="radio" name="{{ q.key }}" value="{{ value }}" {{ 'checked' if value and q.value == value }}>
+              <span>{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+
+  <footer class="quiz-foot">
+    <label class="check"><input type="checkbox" name="consent" value="1" {{ 'checked' if (not profile or profile.consent_notifications) }}>
+      Tell me when a rule change means I may now qualify</label>
+    <button class="btn btn-primary btn-lg" type="submit" data-busy="Checking every rule…">{{ "Save and re-check" if edit else "Show what I'm owed" }}</button>
+  </footer>
+</form>
+{%- endmacro %}
+
+{% macro how_strip() -%}
+<ol class="how-strip" aria-label="How every answer is made">
+  <li class="actor-ai"><span class="actor-dot"></span><div><strong>AI read the official page</strong><span>and drafted each rule with a quote</span></div></li>
+  <li class="actor-system"><span class="actor-dot"></span><div><strong>Code checked every quote</strong><span>word for word on the page</span></div></li>
+  <li class="actor-human"><span class="actor-dot"></span><div><strong>A person approved it</strong><span>before anyone saw it</span></div></li>
+  <li class="actor-system"><span class="actor-dot"></span><div><strong>Code matched your answers</strong><span>no guessing, no AI verdicts</span></div></li>
+</ol>
+{%- endmacro %}
+
+{% block content %}
+{% if not attrs %}
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">Free <span class="sep">·</span> No sign-up <span class="sep">·</span> {{ programme_count }} verified programmes in {{ country_count }} countries</p>
+    <h1>Find the support <span class="hl">you're owed.</span></h1>
+    <p class="lede">Answer a few questions. Entitle checks you against rules that AI read from official government pages, that code verified word for word, and that a person approved. Every answer shows its receipt.</p>
+  </div>
+  {{ how_strip() }}
+</section>
+
+<section id="questions" class="quiz-wrap">{{ questionnaire(False) }}</section>
+
+<section class="preview">
+  <h2 class="group-title">Programmes Entitle can check right now <span>{{ groups.unchecked|length }}</span></h2>
+  <p class="group-note">Each rule below is the official wording, approved by a reviewer. Your answers turn the question marks into ticks.</p>
+  <div class="prog-grid">{% for card in groups.unchecked %}{{ programme_card(card) }}{% endfor %}</div>
+</section>
+
+{% else %}
+<section class="hero hero-compact">
+  <div class="hero-copy">
+    <p class="eyebrow">Hi {{ citizen.display_name.split(" ")[0] }}</p>
+    <h1>{% if groups.eligible %}You may be owed <span class="hl">{{ groups.eligible|length }} programme{{ "s" if groups.eligible|length != 1 }}.</span>{% else %}Here is where you stand.{% endif %}</h1>
+    <ul class="answer-chips">
+      {% for r in rows %}<li><span>{{ r.label }}</span>{{ r.value }}</li>{% endfor %}
+      <li class="answer-edit"><a href="#answers" data-tab-link="answers">Edit answers</a></li>
+    </ul>
+  </div>
+  {{ how_strip() }}
+</section>
+
+<nav class="tabs" aria-label="Your sections" data-tabs>
+  <a href="#matches" data-tab="matches">Matches <span class="count">{{ groups.eligible|length }}</span></a>
+  <a href="#packets" data-tab="packets">Packets <span class="count">{{ applications|length }}</span></a>
+  <a href="#alerts" data-tab="alerts">Alerts {% if unread %}<span class="count count-hot">{{ unread }}</span>{% endif %}</a>
+  <a href="#answers" data-tab="answers">My answers</a>
+</nav>
+
+<section id="matches" class="tab-panel" data-panel="matches">
+  <h2 class="group-title">You qualify <span>{{ groups.eligible|length }}</span></h2>
+  {% if groups.eligible %}
+    <div class="prog-grid">{% for card in groups.eligible %}{{ programme_card(card, True) }}{% endfor %}</div>
+  {% else %}
+    <p class="empty-line">No verified programme matches you yet. When a reviewer approves new rules, Entitle re-checks you and sends an alert.</p>
+  {% endif %}
+
+  {% if groups.likely %}
+  <h2 class="group-title">One answer away <span>{{ groups.likely|length }}</span></h2>
+  <p class="group-note">Answer the missing question in <a class="link" href="#answers" data-tab-link="answers">My answers</a> to settle these.</p>
+  <div class="prog-grid">{% for card in groups.likely %}{{ programme_card(card) }}{% endfor %}</div>
+  {% endif %}
+
+  {% if groups.not_eligible %}
+  <details class="fold">
+    <summary>Not a match right now <span>{{ groups.not_eligible|length }}</span></summary>
+    <div class="prog-grid">{% for card in groups.not_eligible %}{{ programme_card(card) }}{% endfor %}</div>
+  </details>
+  {% endif %}
+  {% if groups.elsewhere %}
+  <details class="fold">
+    <summary>Programmes in other countries <span>{{ groups.elsewhere|length }}</span></summary>
+    <div class="prog-grid">{% for card in groups.elsewhere %}{{ programme_card(card) }}{% endfor %}</div>
+  </details>
+  {% endif %}
+</section>
+
+<section id="packets" class="tab-panel" data-panel="packets">
+  {% if not applications %}
+    <div class="empty">
+      <h2>No packets yet</h2>
+      <p>When you qualify for a programme, press “Prepare my packet”. Entitle fills in what it knows and lists the documents. Nothing is used until you approve it.</p>
+    </div>
+  {% endif %}
+  {% for a in applications %}
+  {% set approved = a.row.state == "approved" %}
+  <article class="packet {{ 'packet-approved' if approved else '' }}">
+    <header>
+      <h3>{{ a.payload.programme or (a.program.title if a.program else "Programme") }}</h3>
+      <span class="badge {{ 'badge-human' if approved else 'badge-hold' }}">{{ "Approved by you" if approved else "Waiting for your approval" }}</span>
+    </header>
+    <dl class="fields">
+      {% for k, v in a.payload.fields.items() if k != "email" %}<div><dt>{{ {"full_name": "Name"}.get(k, k) }}</dt><dd>{{ v }}</dd></div>{% endfor %}
+    </dl>
+    {% if a.payload.documents %}
+    <div class="docs"><strong>Documents to have ready</strong>
+      <ul>{% for d in a.payload.documents %}<li>{{ d }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+    <footer class="packet-foot">
+      {% if approved %}
+        <p>You approved this on {{ day(a.row.updated_at) }}. Entitle never applies for you. Submit it on the official page in your own name.</p>
+        <a class="btn btn-primary" href="{{ a.payload.official_url }}" target="_blank" rel="noopener">Open the official page</a>
+      {% else %}
+        <p>Check every line. You decide whether this packet is right.</p>
+        <form method="post" action="/me/applications/{{ a.row.id }}/approve"><button class="btn btn-primary" type="submit">Approve packet</button></form>
+      {% endif %}
+      <form method="post" action="/me/applications/{{ a.row.id }}/withdraw"><button class="btn btn-quiet" type="submit">Remove</button></form>
+    </footer>
+  </article>
+  {% endfor %}
+</section>
+
+<section id="alerts" class="tab-panel" data-panel="alerts">
+  {% if alerts %}
+    <div class="panel-head">
+      <h2>Changes that affect you</h2>
+      {% if unread %}<form method="post" action="/me/alerts/read"><button class="btn btn-quiet" type="submit">Mark all as read</button></form>{% endif %}
+    </div>
+    {% for a in alerts %}
+    {% set good = a.row.kind == "newly_eligible" %}
+    <article class="alert {{ 'alert-good' if good else 'alert-bad' }} {{ 'alert-unread' if not a.row.read_at else '' }}">
+      <header>
+        <span class="badge {{ 'badge-human' if good else 'badge-hold' }}">{{ "Good news" if good else "Rule change" }}</span>
+        <time>{{ ago(a.row.created_at) }}</time>
+      </header>
+      <h3>{{ a.detail.meaning }}</h3>
+      <p>{{ a.detail.what_changed }}</p>
+      {% if a.detail.quote %}<blockquote class="mini-slip">“{{ a.detail.quote }}”</blockquote>{% endif %}
+      <footer>
+        {% if not good %}<span class="approved"><span class="actor-dot actor-human-dot"></span>A reviewer, {{ a.detail.released_by }}, checked this before it reached you.</span>{% endif %}
+        {% if a.program %}<a class="link" href="{{ a.program.official_url }}" target="_blank" rel="noopener">{{ "See the programme" if good else "Read the official page" }}</a>{% endif %}
+      </footer>
+    </article>
+    {% endfor %}
+  {% else %}
+    <div class="empty">
+      <h2>No alerts yet</h2>
+      <p>When a reviewer approves new or changed rules, Entitle re-checks you straight away. If you may now qualify you hear first. If you may lose support, a person checks it before you are told.</p>
+    </div>
+  {% endif %}
+</section>
+
+<section id="answers" class="tab-panel" data-panel="answers">
+  {{ questionnaire(True) }}
+  <form class="danger" method="post" action="/me/delete" data-confirm="Delete your answers, packets and alerts for good?">
+    <div><h3>Delete my data</h3><p>Removes your answers, packets and alerts from Entitle for good.</p></div>
+    <button class="btn btn-danger" type="submit">Delete everything</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,127 +1,73 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}ENTITLE{% endblock %}</title>
+  <title>{% block title %}Entitle{% endblock %}</title>
+  <meta name="description" content="Entitle finds the public support you are owed and shows the exact words on the official page that prove it.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css?v=11">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='6' y='3' width='20' height='26' rx='3' fill='%23142033'/><path d='M11 16l4 4 7-8' stroke='%2334d399' stroke-width='3' fill='none' stroke-linecap='round'/></svg>">
 </head>
 <body class="{% block body_class %}{% endblock %}">
-  {% set role = user.role if user else None %}
-  {% set path = request.url.path %}
-  <header class="masthead">
-    <div class="wrap masthead-inner">
-      <div class="brand-block">
-        <a class="brand" href="/">
-          <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 40 40" width="34" height="34" fill="none">
-              <rect width="40" height="40" rx="8" fill="#0d5c63"/>
-              <path d="M7 29c3.5-.8 5.5-4.5 7.5-8.2C16.8 16.5 19 12.5 22.5 11c1.2 4.8 2.8 9.8 6.5 13.5" stroke="#fff" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M21 10.5l2.2-4.2 2.2 4.2" stroke="#9fe8c2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="30.5" cy="25.5" r="1.6" fill="#9fe8c2"/>
-            </svg>
-          </span>
-          <span class="brand-text">
-            <span class="brand-name">ENTITLE</span>
-            <span class="brand-tag">Your future. Our guidance.</span>
-          </span>
-        </a>
-      </div>
-      {% if user %}
-        <nav aria-label="Primary">
-          <ul class="nav-links">
-            {% if role == "citizen" %}
-              <li>
-                <a href="/" {% if path == "/" %}aria-current="page"{% endif %}>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
-                  Programmes
-                </a>
-              </li>
-              <li>
-                <a href="/profile" {% if path == "/profile" or path == "/privacy" %}aria-current="page"{% endif %}>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M5 19c1.5-3.2 4-4.8 7-4.8s5.5 1.6 7 4.8"/></svg>
-                  Profile
-                </a>
-              </li>
-              <li>
-                <a href="/alerts" {% if path.startswith("/alerts") or path == "/notifications" %}aria-current="page"{% endif %}>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3a6 6 0 016 6c0 4-3 6-3 6H9s-3-2-3-6a6 6 0 016-6z"/><path d="M10 19h4"/></svg>
-                  Alerts{% if unread_count %}<span class="nav-count">{{ unread_count }}</span>{% endif %}
-                </a>
-              </li>
-            {% else %}
-              <li>
-                <a href="/" {% if path == "/" %}aria-current="page"{% endif %}>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h8M8 13h5"/></svg>
-                  Desk
-                </a>
-              </li>
-              <li>
-                <a href="/curator" {% if path.startswith("/curator") %}aria-current="page"{% endif %}>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/><path d="M9 12h6M9 16h6"/></svg>
-                  Rule changes
-                </a>
-              </li>
-              <li>
-                <a href="/navigator" {% if path.startswith("/navigator") %}aria-current="page"{% endif %}>
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M5 19c1.5-3.2 4-4.8 7-4.8s5.5 1.6 7 4.8"/></svg>
-                  Reviews
-                </a>
-              </li>
-              {% if role == "admin" %}
-                <li>
-                  <a href="/timeline" {% if path == "/timeline" %}aria-current="page"{% endif %}>
-                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 18V6M4 18h16"/><path d="M7 14l3-4 3 2 4-6"/></svg>
-                    Activity
-                  </a>
-                </li>
-              {% endif %}
-            {% endif %}
-          </ul>
-        </nav>
-        <div class="masthead-user">
-          <span class="nav-user">Welcome, {{ user.display_name.split()[0] }}</span>
-          {% if role == "citizen" %}
-            <a class="nav-quiet" href="/privacy">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v6c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6"/><path d="M5 12v6c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-6"/></svg>
-              Your data
-            </a>
-          {% endif %}
-          <form action="/logout" method="post">
-            <button class="btn btn-secondary" type="submit">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 5H6v14h4"/><path d="M13 12H4"/><path d="M16 8l4 4-4 4"/></svg>
-              Sign out
-            </button>
-          </form>
-        </div>
-      {% endif %}
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/" aria-label="Entitle home">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="3" width="20" height="26" rx="3"/><path d="M11 16l4 4 7-8"/></svg>
+        <span class="brand-word">Entitle</span>
+        {% block brand_suffix %}{% endblock %}
+      </a>
+      <nav class="who" aria-label="Views">
+        {% if admin %}
+          {% block view_switch %}<a class="btn btn-ghost btn-sm" href="/desk">Verification Desk</a>{% endblock %}
+          <span class="who-name"><span class="avatar avatar-letter">{{ admin.display_name[:1]|upper }}</span>{{ admin.display_name }}</span>
+          <form method="post" action="/admin/logout"><button class="btn btn-quiet" type="submit">Sign out</button></form>
+        {% else %}
+          {% if citizen %}<span class="who-hello">Hi, {{ citizen.display_name.split(" ")[0] }}</span>{% endif %}
+          <button class="btn btn-ghost btn-sm" type="button" data-open-admin>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/></svg>
+            Admin
+          </button>
+        {% endif %}
+      </nav>
     </div>
   </header>
-
-  <div class="stamp-bar">
-    <div class="wrap">
-      <span class="stamp-message">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 10v8h4v-5h4v5h4v-8l-6-5z"/><path d="M3 18h18"/></svg>
-        A person decides. The model explains. You approve.
-      </span>
-    </div>
-  </div>
-
-  <main class="wrap">
+  {% if not admin %}
+  <dialog class="admin-dialog" id="admin-dialog" aria-labelledby="admin-title" {% if admin_error %}data-autoopen{% endif %}>
+    <form method="post" action="/admin/login" class="admin-form">
+      <header>
+        <span class="admin-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><rect x="4" y="9" width="12" height="8" rx="2"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9"/></svg></span>
+        <div>
+          <h2 id="admin-title">Verification Desk</h2>
+          <p>For reviewers who approve the rules AI drafts.</p>
+        </div>
+      </header>
+      {% if admin_error %}<p class="admin-error" role="alert">{{ admin_error }}</p>{% endif %}
+      {% if admin_ready %}
+      <label>Username<input name="username" autocomplete="username" required></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+      {% else %}
+      <p class="admin-off">Admin sign-in is switched off until <code>ADMIN_PASSWORD</code> is set on the server.</p>
+      {% endif %}
+      <footer>
+        <button class="btn btn-quiet" type="button" data-close-admin>Cancel</button>
+        {% if admin_ready %}<button class="btn btn-primary" type="submit" data-busy="Signing in…">Sign in</button>{% endif %}
+      </footer>
+    </form>
+  </dialog>
+  {% endif %}
+  {% if flash %}
+  <div class="flash flash-{{ flash.kind }}" role="status"><div class="flash-inner">{{ flash.text }}</div></div>
+  {% endif %}
+  <main id="main">
     {% block content %}{% endblock %}
   </main>
-
-  <footer class="site-footer">
-    <div class="wrap site-footer-inner">
-      <span class="footer-secure">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
-        Secure &amp; Private <span aria-hidden="true">|</span> Your data is safe with us
-      </span>
-      <span class="footer-version">ENTITLE v1.0</span>
-    </div>
+  <footer class="foot">
+    <p>Entitle gives information, not legal advice. Rules come only from official pages, and a person approves every rule before it is used.</p>
   </footer>
+  <script src="/static/app.js?v=11" defer></script>
 </body>
 </html>

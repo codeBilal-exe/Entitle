@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}Verification Desk — Entitle{% endblock %}
+{% block body_class %}page-desk{% endblock %}
+{% block brand_suffix %}<span class="brand-suffix">Verification Desk</span>{% endblock %}
+{% block view_switch %}<a class="btn btn-ghost btn-sm" href="/">Citizen view</a>{% endblock %}
+
+{% macro actor_label(actor) -%}{{ {"ai": "AI", "human": "Person", "system": "Code"}.get(actor, "Code") }}{%- endmacro %}
+
+{% macro pipeline(view, live=False) -%}
+<ol class="pipe {{ 'pipe-live' if live else '' }}" {% if live %}data-pipe-live hidden{% endif %}>
+  {% set planned = [
+    ("fetch", "Fetch the official page", "system"),
+    ("draft", "AI drafts the rules", "ai"),
+    ("receipts", "Receipt check", "system"),
+    ("impact", "Preview who it affects", "system"),
+    ("review", "A reviewer decides", "human"),
+    ("recheck", "Re-check everyone", "system"),
+    ("alerts", "Route the alerts", "system")] %}
+  {% set done = {} %}
+  {% if view %}{% for s in view.steps %}{% set _ = done.update({s.key: s}) %}{% endfor %}{% endif %}
+  {% for key, label, actor in planned %}
+    {% set s = done.get(key) %}
+    <li class="pipe-step actor-{{ s.actor if s else actor }} status-{{ s.status if s else 'todo' }}">
+      <span class="pipe-node" aria-hidden="true"></span>
+      <span class="pipe-actor">{{ actor_label(s.actor if s else actor) }}</span>
+      <strong>{{ s.label if s else label }}</strong>
+      <span class="pipe-detail">{% if s %}{{ s.detail }}{% if s.ms %} <em>{{ (s.ms / 1000)|round(1) }}s</em>{% endif %}{% elif live %}Waiting{% else %}Not reached{% endif %}</span>
+    </li>
+  {% endfor %}
+</ol>
+{%- endmacro %}
+
+{% macro job_card(v, open=False) -%}
+{% set j = v.job %}
+<article class="job job-{{ j.status }}" id="job-{{ j.id }}">
+  <header class="job-head">
+    <span class="flag">{{ flag(v.draft.country) }}</span>
+    <div>
+      <h3>{{ v.draft.title }}</h3>
+      <p class="prog-meta">
+        {{ "Rule update" if j.kind == "update" else "New programme" }}
+        <span class="sep">/</span> started by {{ {"reviewer": "a reviewer", "watcher": "the page watcher", "n8n": "n8n"}.get(j.trigger, j.trigger) }}
+        <span class="sep">/</span> {{ ago(j.created_at) }}
+      </p>
+      <a class="link url" href="{{ j.source_url }}" target="_blank" rel="noopener">{{ j.source_url }}</a>
+    </div>
+    <span class="badge {{ {'pending_review': 'badge-hold', 'approved': 'badge-human', 'rejected': 'badge-block'}.get(j.status, '') }}">
+      {{ {"pending_review": "Waiting for you", "approved": "Approved by " ~ (j.reviewed_by or "a reviewer"), "rejected": "Rejected by " ~ (j.reviewed_by or "a reviewer")}.get(j.status, j.status) }}
+    </span>
+  </header>
+
+  {{ pipeline(v) }}
+
+  {% if v.draft.summary %}<p class="prog-summary"><span class="actor-dot actor-ai-dot"></span>{{ v.draft.summary }}</p>{% endif %}
+  {% if v.lookalike %}<p class="note note-held">This looks like <strong>{{ v.lookalike.title }}</strong>, which is already live. Approving adds a second programme, so reject this draft if it is the same one.</p>{% endif %}
+  {% if v.diff and j.kind == "update" %}<ul class="diff">{% for line in v.diff %}<li>{{ line }}</li>{% endfor %}</ul>{% endif %}
+
+  <form method="post" action="/desk/jobs/{{ j.id }}/approve" class="rules-form">
+    <div class="rules-head">
+      <h4>Rules the {{ "AI" if v.method == "ai" else "pattern reader" }} drafted</h4>
+      <p><span class="ok-text">{{ v.verified }} verified</span>{% if v.blocked %} <span class="sep">/</span> <span class="bad-text">{{ v.blocked }} blocked: not on the page</span>{% endif %}</p>
+    </div>
+    <ul class="rules">
+      {% for r in v.rules %}
+      <li class="rule {{ 'rule-ok' if r.ok else 'rule-bad' }}">
+        {% if j.status == "pending_review" %}
+        <label class="rule-tick">
+          <input type="checkbox" name="keep" value="{{ r.c.id }}" {{ 'checked' if r.ok }} {{ 'disabled' if not r.ok }}>
+          <span class="sr-only">Include this rule</span>
+        </label>
+        {% else %}
+        <span class="receipt-mark {{ 'mark-ok' if r.ok else 'mark-bad' }}" aria-hidden="true">{{ "✓" if r.ok else "✕" }}</span>
+        {% endif %}
+        <div class="rule-body">
+          <p class="rule-line"><strong>{{ r.c.plain or rule_phrase(r.c) }}</strong> <span class="rule-code">{{ rule_phrase(r.c) }}{% if r.c.carried %} / unchanged from the live rules{% endif %}</span></p>
+          {% if r.ok and r.context %}
+            <blockquote class="in-page"><span class="ctx">{{ r.context.before }}</span><mark>{{ r.context.quote }}</mark><span class="ctx">{{ r.context.after }}</span></blockquote>
+            <p class="verdict ok-text">Found word for word on the page</p>
+          {% else %}
+            <blockquote class="in-page in-page-bad"><s>“{{ r.c.source_quote or "No quote given" }}”</s></blockquote>
+            <p class="verdict bad-text">Not on the page. Blocked, so it can never go live.</p>
+          {% endif %}
+        </div>
+      </li>
+      {% endfor %}
+      {% if not v.rules %}<li class="rule rule-bad"><div class="rule-body"><p>The page did not state any rule Entitle can check. Reject this draft or try the programme’s eligibility page.</p></div></li>{% endif %}
+    </ul>
+    {% if v.draft.unsupported %}
+    <details class="aside">
+      <summary>{{ v.draft.unsupported|length }} more rule{{ "s" if v.draft.unsupported|length != 1 }} the AI found but Entitle cannot check yet</summary>
+      <ul>{% for u in v.draft.unsupported %}<li>{{ u.plain }}{% if u.source_quote %} <q>{{ u.source_quote }}</q>{% endif %}</li>{% endfor %}</ul>
+    </details>
+    {% endif %}
+
+    {% if j.status == "pending_review" %}
+    <div class="impact">
+      <strong>If you approve the ticked rules</strong>
+      <span>{{ v.impact.checked }} people re-checked</span>
+      <span class="ok-text">{{ v.impact.gained|length }} would be told they may qualify</span>
+      <span class="hold-text">{{ v.impact.lost|length }} may lose support, held for you first</span>
+    </div>
+    <div class="decide">
+      <p>Untick any rule that is optional or wrong. Only ticked, verified rules go live.</p>
+      <button class="btn btn-ghost" type="submit" formaction="/desk/jobs/{{ j.id }}/reject" formnovalidate>Reject draft</button>
+      <button class="btn btn-human" type="submit">Approve ticked rules</button>
+    </div>
+    {% endif %}
+  </form>
+</article>
+{%- endmacro %}
+
+{% block content %}
+<section class="desk-top">
+  <div>
+    <h1>Verification Desk</h1>
+    <p class="lede">The AI reads and drafts. Code checks every quote. You decide what goes live and when bad news is shared.</p>
+  </div>
+  <dl class="stats">
+    <div><dt>Programmes live</dt><dd>{{ stats.live }}</dd></div>
+    <div><dt>People checked</dt><dd>{{ stats.people }}</dd></div>
+    <div><dt>Waiting for you</dt><dd>{{ stats.pending }}</dd></div>
+    <div><dt>Made-up quotes blocked</dt><dd>{{ stats.blocked }}</dd></div>
+    <div><dt>Human decisions</dt><dd>{{ stats.human }}</dd></div>
+  </dl>
+</section>
+
+<section class="run" id="run">
+  <form class="run-form" method="post" action="/desk/run" data-run>
+    <label for="url"><strong>Add a programme from any country</strong><span>Paste the official eligibility page. Entitle runs the whole pipeline and hands you the result.</span></label>
+    <div class="run-row">
+      <input id="url" name="url" type="url" inputmode="url" placeholder="https://www.gov.uk/universal-credit/eligibility" autocomplete="off">
+      <button class="btn btn-primary" type="submit">Run the pipeline</button>
+    </div>
+    <details class="aside">
+      <summary>Or paste an updated notice for a programme you already watch</summary>
+      <div class="paste">
+        <select name="program_id" aria-label="Programme">
+          <option value="">Choose the programme</option>
+          {% for p in programs %}<option value="{{ p.id }}">{{ flag(p.country) }} {{ p.title }}</option>{% endfor %}
+        </select>
+        <textarea name="notice_text" rows="3" placeholder="Paste the new wording from the official notice"></textarea>
+      </div>
+    </details>
+  </form>
+  <div class="run-stage">
+    <h2>{% if focus %}Latest run: {{ focus.draft.title }}{% else %}Pipeline{% endif %}</h2>
+    {{ pipeline(None, live=True) }}
+    <div data-pipe-static>
+      {% if focus %}{{ pipeline(focus) }}{% else %}{{ pipeline(None) }}<p class="group-note">Paste an official link above to watch each step run.</p>{% endif %}
+    </div>
+  </div>
+</section>
+
+<nav class="tabs" aria-label="Desk sections" data-tabs>
+  <a href="#review" data-tab="review">Review queue <span class="count {{ 'count-hot' if pending }}">{{ pending|length }}</span></a>
+  <a href="#news" data-tab="news">Bad news on hold <span class="count {{ 'count-hot' if held }}">{{ held|length }}</span></a>
+  <a href="#pages" data-tab="pages">Watched pages <span class="count">{{ sources|length }}</span></a>
+  <a href="#activity" data-tab="activity">Activity</a>
+</nav>
+
+<section id="review" class="tab-panel" data-panel="review">
+  {% for v in pending %}{{ job_card(v) }}{% endfor %}
+  {% if not pending %}
+  <div class="empty"><h2>Nothing waiting for you</h2><p>Paste an official link above, or re-read the watched pages. Drafts land here and nothing goes live until you approve.</p></div>
+  {% endif %}
+  {% if decided %}
+  <details class="fold" {{ 'open' if focus and focus.job.status != 'pending_review' }}>
+    <summary>Recently decided <span>{{ decided|length }}</span></summary>
+    {% for v in decided %}{{ job_card(v) }}{% endfor %}
+  </details>
+  {% endif %}
+</section>
+
+<section id="news" class="tab-panel" data-panel="news">
+  {% for h in held %}
+  <article class="held">
+    <div>
+      <span class="badge badge-hold">{{ "On hold" if h.row.status == "held" else "New, not shared yet" }}</span>
+      <h3>{{ h.detail.display_name }} may lose {{ h.program.title if h.program else "a programme" }}</h3>
+      <p>{{ status_word(h.detail.before) }} before. {{ status_word(h.detail.after) }} under the new rules.</p>
+      <p class="prog-meta">{{ h.detail.what_changed }}</p>
+      {% if h.detail.quote %}<blockquote class="mini-slip">“{{ h.detail.quote }}”</blockquote>{% endif %}
+      <p class="group-note">You see the name and the change only. Their private profile stays private.</p>
+    </div>
+    <div class="held-actions">
+      <form method="post" action="/desk/news/{{ h.row.id }}/release"><button class="btn btn-human" type="submit">Release to them</button></form>
+      {% if h.row.status != "held" %}<form method="post" action="/desk/news/{{ h.row.id }}/hold"><button class="btn btn-ghost" type="submit">Keep on hold</button></form>{% endif %}
+    </div>
+  </article>
+  {% endfor %}
+  {% if not held %}
+  <div class="empty"><h2>No bad news waiting</h2><p>When a rule change means someone may lose support, Entitle holds the alert here. They hear nothing until you release it.</p></div>
+  {% endif %}
+</section>
+
+<section id="pages" class="tab-panel" data-panel="pages">
+  <div class="panel-head">
+    <div><h2>Watched official pages</h2><p class="group-note">Re-read automatically every {{ (config_minutes or 30) }} minutes. A real rule change becomes a draft in your queue.</p></div>
+    <form method="post" action="/desk/check-now" data-run-check><button class="btn btn-primary" type="submit" data-busy="Reading pages…">Re-read all pages now</button></form>
+  </div>
+  <table class="table">
+    <thead><tr><th>Programme</th><th>Status</th><th>Last read</th></tr></thead>
+    <tbody>
+      {% for s in sources %}
+      <tr>
+        <td><a class="link" href="{{ s.url }}" target="_blank" rel="noopener">{{ program_titles.get(s.program_id, s.label) }}</a><small>{{ s.url.split('/')[2] }}</small></td>
+        <td><span class="badge {{ {'ok': 'badge-human', 'unreachable': 'badge-block'}.get(s.status, '') }}">{{ {"ok": "Read", "unreachable": "Unreachable", "not_checked": "Not read yet"}.get(s.status, s.status) }}</span></td>
+        <td>{{ ago(s.last_checked) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section id="activity" class="tab-panel" data-panel="activity">
+  <h2>Who did what</h2>
+  <p class="group-note">Every step is logged with who did it: the AI, code, or a person.</p>
+  <ol class="log">
+    {% for e in events %}
+    <li class="actor-{{ e.actor }} {{ 'log-bad' if e.status in ['error', 'blocked'] }}">
+      <span class="pipe-actor">{{ actor_label(e.actor) }}</span>
+      <div><strong>{{ stage_label(e.stage) }}</strong><span>{{ e.detail }}</span></div>
+      <time>{{ ago(e.at) }}</time>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endblock %}

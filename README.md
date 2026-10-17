@@ -1,74 +1,73 @@
-# ENTITLE
+# Entitle
 
-ENTITLE watches real public programme notices (scholarships, jobs, health cover, cash support). When a notice changes, code re-checks who is affected. A person approves anything that changes a rule or takes support away. The applicant approves anything sent out. The language model may draft and explain. It never decides eligibility and it never sends on its own.
+**Find out what you're owed. Every answer comes with a receipt.**
 
-A person and a model work together. That shows up on the sign-in page, the home page, and every approval step.
+Around the world, scholarships, cash support and health cover go unclaimed because people don't know the rules, or the rules change and nobody tells them. A chatbot can't fix that, because it will confidently invent a rule, and on welfare a wrong answer costs a family its support.
 
-## Three human stops
+Entitle is AI that has to show its receipts:
 
-1. A person approves a rule change, and only if every quote is in the notice.
-2. A person releases bad news. A loss of support stays held until then.
-3. The applicant approves the exact packet before it is sent.
+1. **AI reads** an official programme page from any country and drafts the eligibility rules. Every rule must quote the page.
+2. **Code checks every quote** word for word against the page. A made-up quote is blocked and can never go live.
+3. **A person approves.** A reviewer ticks the rules that are right and unticks optional or wrong ones. Only ticked, verified rules go live.
+4. **Everyone is re-checked automatically.** People who may now qualify get an alert. People who may lose support are held until a reviewer releases the news.
+5. **The applicant approves** their own packet before using it, and submits it themselves on the official site.
 
-## Three roles
+The AI drafts and explains. It never decides who qualifies, and it never tells anyone bad news on its own.
 
-These are roles on the account, not a view switch.
+## Two views
 
-| Role | Who | What they can do |
+| View | Who | What they do |
 |---|---|---|
-| Citizen | Signs up on the sign-in page | Own profile, matching programmes, own application, own alerts |
-| Staff | Two accounts from the environment | Watch sources, approve or reject a draft, release or hold bad news |
-| Admin | One account from the environment | Staff work, plus sources, the sending switch, and the activity log |
+| **Citizen view** | Anyone, no sign-up | Answer a short form built from the questions the approved rules ask, see programmes they qualify for with the official quote behind every rule, prepare and approve a packet, read alerts, edit or delete their answers |
+| **Verification Desk** (admin) | The admin, via the Admin button in the top bar | Paste any official link and watch the pipeline run, review AI drafts with receipts highlighted in the page text, approve or reject, release or hold bad news, re-read watched pages, audit who did what |
 
-Staff and admin see a name and the eligibility change when they review a loss. They cannot open or edit a citizen's private profile. A citizen cannot open staff or admin tools. Hiding a link is not the check — the server refuses the request.
+Each view is one page with tabs. A citizen's answers are saved in the database and linked to their browser by a signed cookie. The admin credentials come from the environment (`ADMIN_USERNAME`, `ADMIN_PASSWORD`); repeated wrong passwords are locked out for a minute. Every desk action checks the admin session on the server, and nobody can touch another person's packet.
 
-Passwords are hashed with bcrypt. Accounts, profiles, applications, and alerts live in the local SQLite file `data/entitle.db`.
+## The pipeline
 
-## Sign-in
+```
+fetch page -> AI drafts rules -> receipt check -> impact preview -> reviewer decides
+           -> re-check everyone -> good news sent, bad news held for a person
+```
 
-The sign-in page is an empty email and password form, plus Sign up. No account is filled in on that page.
-
-For demos, startup recreates one premade citizen (filled profile) plus staff/admin from the environment. Credentials live in `docs/DEMO_ACCOUNTS.md` (and `.env`). They are not listed on the sign-in page. New sign-ups still get an empty profile.
-
-Walkthrough script: `docs/DEMO_FLOW.md`.
-
-## Programmes
-
-The catalogue is official public pages, including HEC scholarships, Benazir Income Support / Kafaalat, PEEF, NAVTTC, Sehat Sahulat, the Ministry of Human Rights, the Prime Minister's Youth Programme, Pakistan Bait-ul-Mal, and provincial literacy departments.
-
-A rule or quota is shown only as a verbatim quote from a page ENTITLE fetched, after a person approves the draft. If a number is not on that page, it is not shown. If a page cannot be read, the source is marked unreachable.
-
-## Automation
-
-A timer re-reads sources. **Check sources now** does the same thing. On a real text change, ENTITLE drafts a rule update, runs the quote check, and leaves the draft for staff. After approval, stored profiles are re-checked. Someone who newly qualifies gets an alert. Someone who may lose support is held until staff release it. Deadline reminders keep running. The app keeps working if n8n is not running.
-
-## Alerts
-
-Each alert names the programme, what changed, what it means, the quote, whether a person released it, the date, and one next step. "You may now qualify" and "You may no longer qualify" are separate. The navigation shows an unread count. Opening an alert marks it read.
+Every step is timed and logged with its actor (AI, code or person) and shown live on the desk. It runs from the desk, from the built-in watcher every 30 minutes, or from n8n (see `n8n/`).
 
 ## Stack
 
-- Python, FastAPI, Jinja2, SQLAlchemy, SQLite
-- Deterministic rule engine (eligibility is never decided by the model)
-- Quote check before a rule can be approved
-- Approval gate before a packet can be sent
-- Optional n8n workflows and optional Groq drafting
+- Python, FastAPI, Jinja2, SQLAlchemy (SQLite or Postgres)
+- Groq (`openai/gpt-oss-120b`) for drafting rules from official pages, with a rotating key pool and a pattern-based fallback when the AI is unavailable
+- Deterministic rule engine, receipt check, impact diff and approval gate in `app/engine/`
+- Neon Postgres in production (pooled connection for the app, direct connection for creating tables); SQLite locally
+- APScheduler watcher; optional n8n workflows
 
-## Quick start
+The starting catalogue (`app/catalogue.json`) holds real programmes from Pakistan, the UK, Canada and the US. Their rules were drafted by the same pipeline from the live official pages, receipt-checked, and approved by the Entitle team.
+
+## Run locally
 
 ```bash
 python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# macOS / Linux
-# source .venv/bin/activate
-
+.venv\Scripts\activate        # macOS / Linux: source .venv/bin/activate
 pip install -r requirements.txt
-copy .env.example .env
-uvicorn app.main:app --reload --port 8000
+copy .env.example .env        # then fill in the values below
+uvicorn app.main:app --port 8000
 ```
 
-Open http://127.0.0.1:8000. Sign in with the demo accounts in `docs/DEMO_ACCOUNTS.md`, or sign up a new citizen.
+Set in `.env`:
+
+- `GROQ_API_KEYS`: one or more Groq keys, comma-separated
+- `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `ADMIN_NAME`: the Verification Desk sign-in. It stays off while the password is empty
+- `DATABASE_URL`, `DATABASE_URL_UNPOOLED`: Neon's pooled and direct connection strings (`neon env pull` writes both). Leave them out to use SQLite
+- `BASE_URL`: the public address of the app, for example `http://127.0.0.1:8000`
+- `SECRET_KEY`: a long random string
+
+## Deploy (Alternate Clouds)
+
+```bash
+docker build -t entitle .
+docker run --rm -p 8000:8000 --env-file .env entitle
+```
+
+On Alternate Clouds, set every variable from `.env.example` on the Variables tab, set `PORT=8000`, set `BASE_URL` to the service's public URL, then Rebuild and Deploy. With the Neon variables set, answers and approvals survive redeploys; without them the app uses SQLite inside the container, which resets on every rebuild.
 
 ## Tests
 
@@ -76,36 +75,8 @@ Open http://127.0.0.1:8000. Sign in with the demo accounts in `docs/DEMO_ACCOUNT
 pytest
 ```
 
-Critical seams: `RuleEngine`, `QuoteGate`, `CaseImpact`, `ApprovalGate`, plus role and ownership checks.
-
-## Docker
-
-```bash
-docker build -t entitle-core .
-docker run --rm -p 8000:8000 --env-file .env entitle-core
-```
-
-## Internal API
-
-Header: `x-entitle-secret` (your `N8N_SHARED_SECRET`).
-
-```bash
-curl -X POST "http://127.0.0.1:8000/api/internal/check-sources?auto_ingest=true" ^
-  -H "x-entitle-secret: dev-shared-secret"
-```
-
-## Layout
-
-```
-app/
-  engine/          # RuleEngine, QuoteGate, CaseImpact, ApprovalGate
-  services/        # watcher, deadlines, mail
-  templates/
-n8n/               # optional workflow JSON
-tests/
-docs/
-```
+The tests cover both views, the question form, admin sign-in and lockout, ownership checks, the full pipeline from link to alert, a made-up quote being blocked, bad news being held until release, and the rule engine, receipt check, impact diff and approval gate.
 
 ## Licence
 
-Hackathon project. Information only. Not legal or medical advice.
+Hackathon project for Agentika 2.0. Information only, not legal advice.

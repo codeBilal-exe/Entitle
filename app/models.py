@@ -18,9 +18,11 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     display_name: Mapped[str] = mapped_column(String(120))
-    role: Mapped[str] = mapped_column(String(32), default="applicant")
-    password_hash: Mapped[str] = mapped_column(String(255))
+    role: Mapped[str] = mapped_column(String(32), default="citizen")
+    google_sub: Mapped[str] = mapped_column(String(64), default="", index=True)
+    avatar_url: Mapped[str] = mapped_column(String(512), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     profile: Mapped[Profile | None] = relationship(back_populates="user", uselist=False)
 
@@ -31,8 +33,9 @@ class Profile(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
     attributes_json: Mapped[str] = mapped_column(Text, default="{}")
-    consent_notifications: Mapped[bool] = mapped_column(Boolean, default=False)
-    consent_email: Mapped[str] = mapped_column(String(255), default="")
+    about: Mapped[str] = mapped_column(Text, default="")
+    consent_notifications: Mapped[bool] = mapped_column(Boolean, default=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     user: Mapped[User] = relationship(back_populates="profile")
 
@@ -45,9 +48,11 @@ class Program(Base):
     domain: Mapped[str] = mapped_column(String(64))
     title: Mapped[str] = mapped_column(String(255))
     provider: Mapped[str] = mapped_column(String(255))
+    summary: Mapped[str] = mapped_column(Text, default="")
+    official_url: Mapped[str] = mapped_column(String(512), default="")
     status: Mapped[str] = mapped_column(String(32), default="active")
-    is_demo_sample: Mapped[bool] = mapped_column(Boolean, default=True)
     current_version_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class ProgramVersion(Base):
@@ -58,7 +63,6 @@ class ProgramVersion(Base):
     version: Mapped[int] = mapped_column(Integer)
     rules_json: Mapped[str] = mapped_column(Text)
     source_url: Mapped[str] = mapped_column(String(512), default="")
-    last_verified: Mapped[str] = mapped_column(String(32), default="")
     approved_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
     approved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="live")
@@ -74,23 +78,30 @@ class Source(Base):
     last_hash: Mapped[str] = mapped_column(String(64), default="")
     last_checked: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="not_checked")
-    is_demo_controllable: Mapped[bool] = mapped_column(Boolean, default=False)
     last_text: Mapped[str] = mapped_column(Text, default="")
 
 
 class IngestionJob(Base):
+    """One run of the pipeline: fetch, AI draft, receipt check, then a person decides."""
+
     __tablename__ = "ingestion_jobs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    kind: Mapped[str] = mapped_column(String(16), default="update")
     source_id: Mapped[int | None] = mapped_column(ForeignKey("sources.id"), nullable=True)
-    program_id: Mapped[str] = mapped_column(String(64), index=True)
+    program_id: Mapped[str] = mapped_column(String(64), index=True, default="")
+    source_url: Mapped[str] = mapped_column(String(512), default="")
+    trigger: Mapped[str] = mapped_column(String(32), default="reviewer")
     notice_text: Mapped[str] = mapped_column(Text, default="")
     draft_json: Mapped[str] = mapped_column(Text, default="{}")
     quote_check_json: Mapped[str] = mapped_column(Text, default="{}")
     diff_json: Mapped[str] = mapped_column(Text, default="{}")
+    steps_json: Mapped[str] = mapped_column(Text, default="[]")
+    impact_json: Mapped[str] = mapped_column(Text, default="{}")
     status: Mapped[str] = mapped_column(String(32), default="pending_review")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     reviewed_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class Application(Base):
@@ -99,7 +110,7 @@ class Application(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     program_id: Mapped[str] = mapped_column(ForeignKey("programs.id"), index=True)
-    state: Mapped[str] = mapped_column(String(32), default="draft")
+    state: Mapped[str] = mapped_column(String(32), default="ready")
     payload_json: Mapped[str] = mapped_column(Text, default="{}")
     approval_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     idempotency_key: Mapped[str] = mapped_column(String(128), unique=True)
@@ -113,6 +124,7 @@ class Notification(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     program_id: Mapped[str] = mapped_column(String(64))
+    job_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     kind: Mapped[str] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(32), default="pending_review")
     detail_json: Mapped[str] = mapped_column(Text, default="{}")
@@ -129,16 +141,6 @@ class Event(Base):
     stage: Mapped[str] = mapped_column(String(64))
     status: Mapped[str] = mapped_column(String(32), default="ok")
     detail: Mapped[str] = mapped_column(Text, default="")
+    actor: Mapped[str] = mapped_column(String(16), default="system")
     human_decision: Mapped[bool] = mapped_column(Boolean, default=False)
     at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-
-
-class DemoNotice(Base):
-    """Controllable DEMO source body so the live rule-change can be shown on cue."""
-
-    __tablename__ = "demo_notices"
-
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    title: Mapped[str] = mapped_column(String(255))
-    body: Mapped[str] = mapped_column(Text)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
