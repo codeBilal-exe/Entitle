@@ -17,11 +17,11 @@ class Settings(BaseSettings):
 
     # The Verification Desk sign-in. Admin sign-in is off while the password is empty.
     admin_username: str = "admin"
-    admin_password: str = "Admin123"
+    admin_password: str = ""
     admin_name: str = "Entitle reviewer"
 
     n8n_base_url: str = ""
-    n8n_shared_secret: str = "dev-shared-secret"
+    n8n_shared_secret: str = ""
     base_url: str = "http://127.0.0.1:8000"
 
     # SMTP is optional locally; when configured, approved opportunity alerts are emailed.

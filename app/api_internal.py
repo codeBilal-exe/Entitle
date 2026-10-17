@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hmac
+
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -15,7 +17,8 @@ router = APIRouter(prefix="/api/internal", tags=["internal"])
 
 
 def require_secret(x_entitle_secret: str = Header(default="")) -> None:
-    if x_entitle_secret != get_settings().n8n_shared_secret:
+    expected = get_settings().n8n_shared_secret
+    if not expected or not hmac.compare_digest(x_entitle_secret, expected):
         raise HTTPException(status_code=401, detail="unauthorized")
 
 

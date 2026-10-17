@@ -8,9 +8,11 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app import db as dbmod
@@ -68,8 +70,23 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 approval_gate = ApprovalGate()
 
 
+@app.get("/healthz", include_in_schema=False)
+def healthz(db: Session = Depends(get_db)):
+    """Container/readiness probe: confirm the app can reach its configured database."""
+    try:
+        db.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        return JSONResponse(status_code=503, content={"status": "unavailable", "dependency": "database"})
+    return {"status": "ok"}
+
+
 @app.on_event("startup")
 def on_startup() -> None:
+    if settings.base_url.startswith("https://") and (
+        len(settings.secret_key.strip()) < 32
+        or settings.secret_key.lower().startswith(("change-me", "dev-only"))
+    ):
+        raise RuntimeError("Set SECRET_KEY to a unique random value of at least 32 characters before deploying over HTTPS.")
     Path("data").mkdir(exist_ok=True)
     dbmod.init_db()
     session = dbmod.SessionLocal()
